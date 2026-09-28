@@ -1,4 +1,6 @@
 #include "efi.h"
+#include "graphics.h"
+#include "font.h" 
 
 // ============================================================================
 // efi_main: UEFI アプリケーションのエントリポイント
@@ -36,21 +38,28 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
   // --------------------------------------------------------------------------
   // FrameBufferBase: ディスプレイに直結しているビデオメモリ(VRAM)の先頭物理アドレス。
   // 1ピクセルは 32bit (4バイト: 通常は 0x00RRGGBB) なので unsigned int* として扱う。
-  unsigned int *fb = (unsigned int *)gop->Mode->FrameBufferBase;
-  unsigned int width = gop->Mode->Info->HorizontalResolution; // 画面の横幅(px)
-  unsigned int height = gop->Mode->Info->VerticalResolution;  // 画面の縦幅(px)
+  FrameBuffer fb = {
+    .base = (unsigned int *)gop->Mode->FrameBufferBase,
+    .width = gop->Mode->Info->HorizontalResolution, // 画面の横幅(px)
+    .height = gop->Mode->Info->VerticalResolution,  // 画面の縦幅(px)
+                                                    
+    // --- PixelPerScanLine ---
+    // ディスプレイの伝送効率やハードウェアの境界合わせのため、画面右端に「目に見えない余白」
+    // が含まれることがある。そのため、1行進める計算には width ではなく ppsl を必ず使う。
+    .ppsl = gop->Mode->Info->PixelPerScanLine
+  };
 
-  // --- PixelPerScanLine ---
-  // ディスプレイの伝送効率やハードウェアの境界合わせのため、画面右端に「目に見えない余白」
-  // が含まれることがある。そのため、1行進める計算には width ではなく ppsl を必ず使う。
-  unsigned int ppsl = gop->Mode->Info->PixelPerScanLine;
+  // 背景をネイビーブルーでクリア
+  clear_screen(&fb, 0x001E3F);
 
-  // 4. 画面全体を青色 (ネイビーブルー: 0x001E3F) で塗りつぶす
-  for (unsigned int y = 0; y < height; y++) {
-    for (unsigned int x = 0; x < width; x++) {
-      fb[y * ppsl + x] = 0x001E3F;
-    }
-  }
+  // 白いウィンドウ枠 (矩形: 幅150, 高さ100) を描画
+  draw_rect(&fb, 50, 50, 150, 100, 0xFFFFFF);
+
+  // 白い枠の中に黒い文字 'A' を描画
+  draw_char(&fb, 70, 70, 'A', 0x000000);
+
+  // ネイビー背景の上に黄色い文字 'A' を描画
+  draw_char(&fb, 70, 180, 'A', 0xFFFF00);
 
   // 5. 描画結果を表示し続けるために待機
   while (1) {
