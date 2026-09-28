@@ -1,0 +1,25 @@
+# Build artifacts
+build/
+*.bin
+*.efi
+*.EFI
+*.obj
+*.o
+*.sys
+*.tmp
+*.img
+*.iso
+
+# Logs & temp files
+*.log
+*~
+*.swp
+
+# IDE & Editor configs
+.vscode/
+.idea/
+.DS_Store
+
+# Setup & migration scripts
+create_issues.sh
+issue_body.md
