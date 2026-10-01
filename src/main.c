@@ -1,6 +1,6 @@
 #include "efi.h"
 #include "graphics.h"
-#include "font.h" 
+#include "console.h"
 
 // ============================================================================
 // efi_main: UEFI アプリケーションのエントリポイント
@@ -52,14 +52,16 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
   // 背景をネイビーブルーでクリア
   clear_screen(&fb, 0x001E3F);
 
-  // 白いウィンドウ枠 (矩形: 幅150, 高さ100) を描画
-  draw_rect(&fb, 50, 50, 150, 100, 0xFFFFFF);
+  // 4. コンソールの初期化 (文字色: 白 0xFFFFFF, 背景色: ネイビー 0x001E3F)
+  Console con;
+  console_init(&con, &fb, 0xFFFFFF, 0x001E3F);
 
-  // 白い枠の中に黒い文字 'A' を描画
-  draw_char(&fb, 70, 70, 'A', 0x000000);
+  console_puts(&con, "HELLO WORLD\n");
+  console_puts(&con, "HELLO UEFI OS\n\n");
 
-  // ネイビー背景の上に黄色い文字 'A' を描画
-  draw_char(&fb, 70, 180, 'A', 0xFFFF00);
+  for (int i = 0; i < 1000; i++) {
+    console_puts(&con, "HELLO SCROOL TEST\n");
+  }
 
   // 5. 描画結果を表示し続けるために待機
   while (1) {
