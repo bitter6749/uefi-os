@@ -160,9 +160,9 @@ static const unsigned char *get_font(char c) {
 void draw_char(FrameBuffer *fb, unsigned int x, unsigned int y, char c, unsigned int color) {
   const unsigned char *font = get_font(c);
 
-  for (int dy = 0; dy < 16; dy++) {
+  for (int dy = 0; dy < FONT_HEIGHT; dy++) {
     unsigned char line = font[dy];
-    for (int dx = 0; dx < 8; dx++) {
+    for (int dx = 0; dx < FONT_WIDTH; dx++) {
       // line を左に dx ビットシフトし、最上位ビット (0x80 = 10000000b) が立っているか判定
       if ((line << dx) & 0x80) {
         draw_pixel(fb, x + dx, y + dy, color);

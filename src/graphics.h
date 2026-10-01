@@ -5,17 +5,17 @@
 typedef struct {
   unsigned int *base;   // VRAM の先頭アドレス
   unsigned int width;   // 画面の横幅 (px)
-  unsigned int height;  // 画面の横幅 (px)
+  unsigned int height;  // 画面の縦幅 (px)
   unsigned int ppsl;    // 1行あたりのピクセル数
 } FrameBuffer;
 
 // ============================================================================
-// draw_pixcel: 画面上の指定座標 (x, y) に 1 ピクセルを描画する
+// draw_pixel: 画面上の指定座標 (x, y) に 1 ピクセルを描画する
 // ============================================================================
 // - 引数1 (fb):      描画対象のフレームバッファ情報へのポインタ
 // - 引数2 (x):       描画するピクセルの X 座標 (0 <= x <= width)
 // - 引数3 (y):       描画するピクセルの Y 座標 (0 <= y <= height)
-// - 引数3 (color):   描画する色 (32-bit RGB: 0x00RRGGBB)
+// - 引数4 (color):   描画する色 (32-bit RGB: 0x00RRGGBB)
 void draw_pixel(FrameBuffer *fb, unsigned int x, unsigned int y, unsigned int color);
 
 // ============================================================================
