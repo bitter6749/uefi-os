@@ -61,14 +61,9 @@ typedef struct EFI_GRAPHICS_OUTPUT_PROTOCOL {
 #define EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID { 0x9042a9de, 0x23dc, 0x4a38, { 0x96, 0xfb, 0x7a, 0xde, 0xd0, 0x80, 0x51, 0x6a }}
 
 // Boot Services: ファームウェアが提供する機能一覧
-// ※なぜ使わない関数ポインタを大量に並べているのか？
-// C言語の構造体は「メモリ上のオフセット(位置関係)」を決めるための型紙。
-// UEFI仕様書において LocateProtocol は先頭から 320 バイトめに配置されている。
-// その手前にある関数ポインタを同じ順番・個数でならべて位置 (オフセット) を正確に合わせている。
 typedef struct {
   EFI_TABLE_HEADER Hdr;
 
-  // ヘッダから LocateProtocol までのオフセットを合わせるための関数ポインタ群
   void *RaiseTPL;
   void *RestoreTPL;
   void *AllocatePages;
@@ -125,6 +120,53 @@ typedef struct {
   void              *RuntimeServices;
   EFI_BOOT_SERVICES *BootServices; // ブートサービスへのポインタ
 } EFI_SYSTEM_TABLE;
+
+// =====================================================================
+// メモリ領域の種別 (EFI_MEMORY_TYPE)
+// =====================================================================
+typedef enum {
+  EfiReservedMemoryType,
+  EfiLoaderCode,
+  EfiLoaderData,
+  EfiBootServicesCode,
+  EfiBootServicesData,
+  EfiRuntimesServicesCode,
+  EfiRuntimeServicesData,
+  EfiConventionalMemory,  // 使用可能な空き物理メモリ領域
+  EfiUnsableMemory,
+  EfiACPIReclaimMemory,
+  EfiACPIMemoryNVS,
+  EfiMemoryMappedIO,
+  EfiMemoryMappedPortSpace,
+  EfiPalCode,
+  EfiPersistentMemory,
+  EfiMaxMemoryType,
+} EFI_MEMORY_TYPE;
+
+// =====================================================================
+// メモリ記述子構造体 (EFI_MEMORY_DESCRIPTOR)
+// =====================================================================
+// 各物理メモリ領域の先頭アドレス、ページ数、種別を保持する
+typedef struct {
+  unsigned int        Type;             // メモリ領域種別 (EFI_MEMORY_TYPE)
+  unsigned int        Pad;              // 8バイトのアライメント用のパッディング
+  unsigned long long  PhysicalStart;    // 領域の先頭物理アドレス
+  unsigned long long  VirtualStart;     // 領域の先頭仮想アドレス
+  unsigned long long  NumberOfPages;    // ページ数 (1ページ = 4KB = 4096バイト)
+  unsigned long long  Attribute;        // メモリ属性フラグ
+} EFI_MEMORY_DESCRIPTOR;
+
+// =====================================================================
+// カーネル側で保持するメモリマップ情報構造体
+// =====================================================================
+typedef struct {
+  unsigned long long  buffer_size;          // バッファ全体のバイトサイズ
+  void                *buffer;              // メモリ記述子配列へのポインタ
+  unsigned long long  map_size;             // 実際に取得されたメモリマップのバイトサイズ
+  unsigned long long  map_key;              // ExitBootServices で必要な識別キー
+  unsigned long long  descriptor_size;      // 1つの記述子のバイトサイズ
+  unsigned int        descriptor_version;   // 記述子のバージョン
+} MemoryMap;
 
 #endif
 
