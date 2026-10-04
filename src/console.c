@@ -66,3 +66,42 @@ void console_puts(Console *con, const char *str) {
   }
 }
 
+// =========================================================================
+// console_put_hex: コンソールに 16 進数文字列を出力する
+// =========================================================================
+void console_put_hex(Console *con, unsigned long long val, int digits) {
+  console_puts(con, "0x");
+  for (int i = digits - 1; i >= 0; i--) {
+    // 4 ビット ずつ取り出す
+    unsigned char nibble = (val >> (i * 4)) & 0x0F;
+    if (nibble < 10) {
+      console_putc(con, '0' + nibble);
+    } else {
+      console_putc(con, 'A' + (nibble - 10));
+    }
+  } 
+}
+
+// =========================================================================
+// console_put_hex: コンソールに 16 進数文字列を出力する
+// =========================================================================
+void console_put_dec(Console *con, unsigned long long val) {
+  if (val == 0) {
+    console_putc(con, '0');
+    return;
+  }
+
+  char buf[24];
+  int i = 0;
+
+  // 1の位から順に取り出してバッファに積む
+  while (val > 0) {
+    buf[i++] = '0' + (val % 10);
+    val /= 10;
+  }
+
+  // 逆順 (上位の桁から順) に出力
+  while (--i >= 0) {
+    console_putc(con, buf[i]);
+  }
+}
