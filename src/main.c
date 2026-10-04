@@ -1,6 +1,7 @@
 #include "efi.h"
 #include "graphics.h"
 #include "console.h"
+#include "memory.h"
 
 // メモリマップ格納用の静的バッファ (4096 * 4 バイト = 16KB)
 static unsigned char memory_map_buffer[4096 * 4];
@@ -141,6 +142,29 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
   if (status_map == EFI_SUCCESS) {
     console_puts(&con, "Successfully fetched Memory Map!\n");
     print_memory_map(&con, &map);
+
+    // --- フレームアロケータの初期化と動作テスト ---
+    BitmapFrameAllocator allocator;
+    frame_allocator_init(&allocator, &map);
+
+    console_puts(&con, "Total Pages: ");
+    console_put_dec(&con, allocator.total_pages);
+    console_puts(&con, " Free Pages: ");
+    console_put_dec(&con, allocator.free_pages);
+    console_puts(&con, "\n");
+
+    // ページ割当テスト
+    void *frame1 = alloc_frame(&allocator);
+    console_puts(&con, "Allocated Frame 1: ");
+    console_put_hex(&con, (unsigned long long)frame1, 16);
+    console_puts(&con, "\n");
+
+    // ページ解放テスト
+    free_frame(&allocator, frame1);
+    console_puts(&con, "Freed Frame 1. Free Pages: ");
+    console_put_dec(&con, allocator.free_pages);
+    console_puts(&con, "\n");
+
   } else {
     console_puts(&con, "Failed to get Memory Map.\n");
   }
