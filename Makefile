@@ -6,6 +6,7 @@
 CC          := x86_64-w64-mingw32-gcc
 ASM         := nasm
 LD          := x86_64-w64-mingw32-ld
+OBJCOPY     := x86_64-w64-mingw32-objcopy
 QEMU        := qemu-system-x86_64
 MFORMAT     := mformat
 MMD         := mmd
@@ -37,13 +38,17 @@ BUILD_DIR   := build
 TARGET_EFI  := $(BUILD_DIR)/BOOTX64.EFI
 TARGET_IMG  := $(BUILD_DIR)/disk.img
 
+# Font Binary Asset
+FONT_BIN    := font.bin
+FONT_OBJ    := $(BUILD_DIR)/font_bin.o
+
 # Source files (all .c and .asm files under src/)
 C_SRCS      := $(wildcard $(SRC_DIR)/*.c)
 ASM_SRCS    := $(wildcard $(SRC_DIR)/*.asm)
 
 C_OBJS      := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(C_SRCS))
 ASM_OBJS    := $(patsubst $(SRC_DIR)/%.asm,$(BUILD_DIR)/%_asm.o,$(ASM_SRCS))
-ALL_OBJS    := $(C_OBJS) $(ASM_OBJS)
+ALL_OBJS    := $(C_OBJS) $(ASM_OBJS) $(FONT_OBJ)
 
 # Default Target
 .PHONY: all
@@ -58,6 +63,11 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 $(BUILD_DIR)/%_asm.o: $(SRC_DIR)/%.asm
 	@mkdir -p $(BUILD_DIR)
 	$(ASM) $(ASMFLAGS) $< -o $@
+
+# Convert binary font into linkable PE-COFF object file
+$(FONT_OBJ): $(FONT_BIN)
+	@mkdir -p $(BUILD_DIR)
+	$(OBJCOPY) -I binary -O pe-x86-64 -B i386:x86-64 $< $@
 
 # Link object files into PE32+ UEFI executable
 $(TARGET_EFI): $(ALL_OBJS)
