@@ -2,6 +2,84 @@
 #include "graphics.h"
 #include "console.h"
 
+// メモリマップ格納用の静的バッファ (4096 * 4 バイト = 16KB)
+static unsigned char memory_map_buffer[4096 * 4];
+
+// ============================================================================
+// get_memory_map: UEFI からメモリマップを取得する
+// ============================================================================
+// - 引数1 (system_table):  UEFI システムテーブルへのポインタ
+// - 引数2 (map):           取得した情報を格納する MemoryMap 構造体へのポインタ
+// - 戻り値:                EFI_STATUS (0 = EFI_SUCCESS)
+EFI_STATUS get_memory_map(EFI_SYSTEM_TABLE *system_table, MemoryMap *map) {
+  map->buffer_size  = sizeof(memory_map_buffer);
+  map->buffer       = memory_map_buffer;
+  map->map_size     = map->buffer_size;
+
+  // GetMemoryMap の引数順序:
+  // 1. MapSize (*MemoryMapSize)
+  // 2. MemoryMap (*MemoryMap)
+  // 3. MapKey (*MapKey)
+  // 4. DescriptorSize (*DescriptorSize)
+  // 5. DescriptorVersion (*DescriptorVersion)
+  typedef EFI_STATUS (*GetMemoryMapType)(
+    unsigned long long    *MemoryMapSize,
+    EFI_MEMORY_DESCRIPTOR *MemoryMap,
+    unsigned long long    *MapKey,
+    unsigned long long    *DescriptorSize,
+    unsigned int          *DescriptorVersion
+  );
+
+  GetMemoryMapType get_map_func = (GetMemoryMapType)system_table->BootServices->GetMemoryMap;
+
+  return get_map_func (
+    &map->map_size,
+    (EFI_MEMORY_DESCRIPTOR *)map->buffer,
+    &map->map_key,
+    &map->descriptor_size,
+    &map->descriptor_version
+  );
+}
+
+// ============================================================================
+// print_memory_map: 取得したメモリマップ情報を画面に出力する
+// ============================================================================
+// - 引数1 (con):   出力先コンソール構造体へのポインタ
+// - 引数2 (map):   メモリマップ構造体へのポインタ
+void print_memory_map(Console *con, MemoryMap *map) {
+  console_puts(con, "--- MEMORY MAP ---\n");
+
+  unsigned long long total_conventional_bytes = 0;
+  unsigned long long total_boot_services_byte = 0;
+
+  unsigned long long offset = 0;
+
+  while (offset < map->map_size) {
+    EFI_MEMORY_DESCRIPTOR *desc = (EFI_MEMORY_DESCRIPTOR *)((unsigned long long)map->buffer + offset);
+    unsigned long long bytes = desc->NumberOfPages * 4096;
+
+    // 空きメモリ (EfiConventionalMemory = 7) のみを表示する例
+    if (desc->Type == EfiConventionalMemory) {
+      total_conventional_bytes += bytes;
+   } else if (desc->Type == EfiBootServicesCode || desc->Type == EfiBootServicesData) {
+     total_boot_services_byte += bytes;
+   }
+   offset += map->descriptor_size;
+  }
+
+  console_puts(con, "Current Free Memory  : ");
+  console_put_dec(con, total_conventional_bytes / (1024 * 1024));
+  console_puts(con, " MB\n");
+
+  console_puts(con, "Reclaimable Memory   : ");
+  console_put_dec(con, total_boot_services_byte / (1024 * 1024));
+  console_puts(con, " MB\n");
+
+  console_puts(con, "Total Avaliable   : ");
+  console_put_dec(con, (total_conventional_bytes + total_boot_services_byte) / (1024 * 1024));
+  console_puts(con, " MB\n");
+}
+
 // ============================================================================
 // efi_main: UEFI アプリケーションのエントリポイント
 // ============================================================================
@@ -56,12 +134,34 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
   Console con;
   console_init(&con, &fb, 0xFFFFFF, 0x001E3F);
 
+  // メモリマップの取得
+  MemoryMap map;
+  EFI_STATUS status_map = get_memory_map(system_table, &map);
+
+  if (status_map == EFI_SUCCESS) {
+    console_puts(&con, "Successfully fetched Memory Map!\n");
+    print_memory_map(&con, &map);
+  } else {
+    console_puts(&con, "Failed to get Memory Map.\n");
+  }
+
   console_puts(&con, "HELLO WORLD\n");
   console_puts(&con, "HELLO UEFI OS\n\n");
 
-  for (int i = 0; i < 1000; i++) {
+  for (int i = 0; i < 10; i++) {
     console_puts(&con, "HELLO SCROOL TEST\n");
   }
+
+  // コンソールテスト
+  console_puts(&con, "Hello, UEFI Operating System!\n");
+  console_puts(&con, "Testing full ASCII font & numbers:\n");
+
+  console_put_dec(&con, 1234567980);
+  console_puts(&con, "\n");
+
+  console_puts(&con, " - Hex address: ");
+  console_put_hex(&con, 0x10000000, 8);
+  console_puts(&con, "\n");
 
   // 5. 描画結果を表示し続けるために待機
   while (1) {
