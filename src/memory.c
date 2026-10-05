@@ -79,7 +79,7 @@ void frame_allocator_init(BitmapFrameAllocator *allocator, MemoryMap *map) {
 
   // 2. ビットマップデータ自体を配置する領域を EfiConventionalMemory から検索
   // 必要サイズ: total_pages / 8 バイト
-  unsigned long long bitmap_bytes = (allocator->total_pages + 7) / BITS_PER_BYTE;
+  unsigned long long bitmap_bytes = (allocator->total_pages + (BITS_PER_BYTE - 1)) / BITS_PER_BYTE;
   allocator->bitmap = 0;
 
   offset = 0;
@@ -120,21 +120,54 @@ void frame_allocator_init(BitmapFrameAllocator *allocator, MemoryMap *map) {
       allocator->free_pages--;
     }
   }
+
+  // 5. ページ 0 (物理アドレス 0x0) は NULL ポインタ誤判定を防ぐため常時「使用中 (1)」にして保護
+  bitmap_set(allocator->bitmap, 0);
+  if (allocator->free_pages > 0) {
+    allocator->free_pages--;
+  }
 }
 
 // ====================================================================================
 // alloc_frame: 1 ページ (4KB) の物理メモリを割り当てる
 // ====================================================================================
 void *alloc_frame(BitmapFrameAllocator *allocator) {
+  return alloc_frames(allocator, 1);
+}
+
+// ====================================================================================
+// alloc_frames: 連続した複数ページ (4KB * count) の物理メモリを一括で割り当てる
+// ====================================================================================
+void *alloc_frames(BitmapFrameAllocator *allocator, unsigned long long count) {
+  if (count == 0) {
+    return 0;
+  }
+
+  unsigned long long consecutive_free = 0;
+  unsigned long long start_page       = 0;
+
+  // 連続した空きページ (0/FRAME_FREE) を走査
   for (unsigned long long i = 0; i < allocator->total_pages; i++) {
-    // 取得した状態が FRAME_FREE (0) の場合
     if (bitmap_get(allocator->bitmap, i) == FRAME_FREE) {
-      bitmap_set(allocator->bitmap, i); // FRAME_USED (1) に変更
-      allocator->free_pages--;
-      return (void *)(i * PAGE_SIZE); // 該当ページの物理アドレスを返す
+      if (consecutive_free == 0) {
+        start_page = i; // 開始ページインデックスを記録
+      }
+      consecutive_free++;
+
+      // 必要ページ数分連続して見つかった場合
+      if (consecutive_free == count) {
+        for (unsigned long long j = 0; j < count; j++) {
+          bitmap_set(allocator->bitmap, start_page + j);
+        }
+        allocator->free_pages -= count;
+        return (void *)(start_page * PAGE_SIZE); // 先頭の物理アドレスを返却
+      }
+    } else {
+      consecutive_free = 0; // 途切れたらカウントをリセット
     }
   }
-  return 0; // 空きページが存在しない場合は NULL/0 を返す
+
+  return 0; // 連続空き領域が見つからなかった場合
 }
 
 // ====================================================================================

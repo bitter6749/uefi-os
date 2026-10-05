@@ -1,6 +1,7 @@
 #include "efi.h"
 #include "graphics.h"
 #include "console.h"
+#include "heap.h"
 #include "memory.h"
 
 // メモリマップ格納用の静的バッファ (4096 * 4 バイト = 16KB)
@@ -143,9 +144,48 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
     console_puts(&con, "Successfully fetched Memory Map!\n");
     print_memory_map(&con, &map);
 
-    // --- フレームアロケータの初期化と動作テスト ---
+    // --- 物理フレームアロケータの初期化 ---
     BitmapFrameAllocator allocator;
     frame_allocator_init(&allocator, &map);
+
+    console_puts(&con, "Total Pages: ");
+    console_put_dec(&con, allocator.total_pages);
+    console_puts(&con, " Free Pages: ");
+    console_put_dec(&con, allocator.free_pages);
+    console_puts(&con, "\n");
+
+    // --- ヒープアロケータの初期化 (16ページ = 64KB を確保) ---
+    HeapAllocator heap;
+    heap_init(&heap, &allocator, 16);
+    console_puts(&con, "Heap initialized (64KB).\n");
+    console_puts(&con, "Heap Block Size: ");
+    console_put_dec(&con, heap.start_block->size);
+    console_puts(&con, " bytes\n");
+
+    // 1. メモリ確保テスト (kmalloc)
+    int *arr = (int *)kmalloc(&heap, sizeof(int) * 5);
+    if (arr) {
+      console_puts(&con, "kmalloc array addr: ");
+      console_put_hex(&con, (unsigned long long)arr, 16);
+      console_puts(&con, "\n");
+
+      // 値の読み書きテスト
+      for (int i = 0; i < 5; i++) {
+        arr[i] = (i + 1) * 10;
+      }
+
+      console_puts(&con, "arr[4] value: ");
+      console_put_dec(&con, arr[4]);  // 50
+      console_puts(&con, "\n");
+
+      // 2. メモリ解放テスト (kfree)
+      kfree(&heap, arr);
+      console_puts(&con, "kfree success!\n");
+    } else {
+      console_puts(&con, "kmalloc failed\n");
+    }
+
+
 
     console_puts(&con, "Total Pages: ");
     console_put_dec(&con, allocator.total_pages);
