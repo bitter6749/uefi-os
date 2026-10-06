@@ -2,6 +2,7 @@
 #define MEMORY_H
 
 #include "efi.h"
+#include "graphics.h"
 
 // ====================================================================================
 // メモリ管理用の定数定義
@@ -22,6 +23,14 @@ typedef struct {
   unsigned long long  total_pages;  // 全物理ページ数
   unsigned long long  free_pages;   // 現在の空きページ数
 } BitmapFrameAllocator;
+
+// ====================================================================================
+// get_max_physical_address: 全物理RAMおよびVRAMを含めた最大物理アドレスを求める
+// ====================================================================================
+// - 引数1 (map):         MemoryMap 構造体へのポインタ
+// - 引数2 (fb):          FrameBuffer 構造体へのポインタ
+// - 戻り値:              計算された最大物理アドレス (バイト単位)
+unsigned long long get_max_physical_address(MemoryMap *map, FrameBuffer *fb);
 
 // ====================================================================================
 // frame_allocator_init: メモリマップをもとにフレームアロケータを初期化する
@@ -51,4 +60,5 @@ void *alloc_frames(BitmapFrameAllocator *allocator, unsigned long long count);
 // - 引数1 (allocator):   アロケータ構造体へのポインタ
 // - 引数2 (frame_addr):  解放する物理ページの先頭アドレス
 void free_frame(BitmapFrameAllocator *allocator, void *frame_addr);
+
 #endif

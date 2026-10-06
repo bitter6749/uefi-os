@@ -58,6 +58,32 @@ static inline int bitmap_get(const unsigned char *bitmap, unsigned long long pag
 }
 
 // ====================================================================================
+// get_max_physical_address: 全物理RAMおよびVRAMを含めた最大物理アドレスを求める
+// ====================================================================================
+unsigned long long get_max_physical_address(MemoryMap *map, FrameBuffer *fb) {
+  // --- 64-bit ページテーブルの作成とCR3登録 ---
+  unsigned long long max_ram_addr = 0;
+  unsigned long long offset        = 0;
+
+  while (offset < map->map_size) {
+    EFI_MEMORY_DESCRIPTOR *desc = (EFI_MEMORY_DESCRIPTOR *)((unsigned long long)map->buffer + offset);
+
+    unsigned long long end_addr = desc->PhysicalStart + desc->NumberOfPages * PAGE_SIZE;
+
+    if (end_addr > max_ram_addr && end_addr < 0x100000000ULL) { // 4GB 未満
+      max_ram_addr = end_addr;
+    }
+    offset += map->descriptor_size;
+  }
+
+  // VRAM (フレームバッファ) の領域もマッピング領域に含める
+  unsigned long long vram_end = (unsigned long long)fb->base + (fb->ppsl * fb->height * 4);
+
+  // 高い方の物理アドレスを返す
+  return (vram_end > max_ram_addr) ? vram_end : max_ram_addr;
+}
+
+// ====================================================================================
 // frame_allocator_init: メモリマップをもとにフレームアロケータを初期化する
 // ====================================================================================
 void frame_allocator_init(BitmapFrameAllocator *allocator, MemoryMap *map) {

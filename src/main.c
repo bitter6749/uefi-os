@@ -207,27 +207,7 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
     console_puts(&con, "\n");
 
     // --- 64-bit ページテーブルの作成とCR3登録 ---
-    unsigned long long max_ram_addr = 0;
-    unsigned long long offset        = 0;
-
-    while (offset < map.map_size) {
-      EFI_MEMORY_DESCRIPTOR *desc = (EFI_MEMORY_DESCRIPTOR *)((unsigned long long)map.buffer + offset);
-
-      unsigned long long end_addr = desc->PhysicalStart + desc->NumberOfPages * PAGE_SIZE;
-
-      if (end_addr > max_ram_addr && end_addr < 0x100000000ULL) {
-        max_ram_addr = end_addr;
-      }
-      offset += map.descriptor_size;
-    }
-
-    // VRAM (フレームバッファ) の領域もマッピング領域に含める
-    unsigned long long vram_end = (unsigned long long)fb.base + (fb.ppsl * fb.height * 4);
-
-    unsigned long long max_phys_addr = max_ram_addr;
-    if (vram_end > max_phys_addr) {
-      max_phys_addr = vram_end;
-    }
+    unsigned long long max_phys_addr = get_max_physical_address(&map, &fb);
 
     // デバッグ出力で確認
     console_puts(&con, "\nFinal Max Addr: ");
