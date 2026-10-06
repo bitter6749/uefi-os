@@ -1,7 +1,9 @@
 #include "paging.h"
 #include "memory.h"
 
+// ====================================================================================
 // ページテーブル用メモリ (4KB) を割り当てて 0 でクリアする内部ヘルパー関数
+// ====================================================================================
 static PageTable *create_empty_table(BitmapFrameAllocator *allocator) {
   PageTable *table = (PageTable *)alloc_frame(allocator);
   if (!table) {
@@ -14,6 +16,35 @@ static PageTable *create_empty_table(BitmapFrameAllocator *allocator) {
   }
 
   return table;
+}
+
+// =================j===================================================================
+// get_or_create_next_table: 次の階層のページテーブルを取得、なければ新規作成する
+// ====================================================================================
+// - 引数1 (current_table):   現在の階層のテーブルポインタ
+// - 引数2 (index):           対象のエントリインデックス (0~511)
+// - 引数3 (allocator):       メモリ割り当て用フレームアロケータ
+// - 引数4 (flags):           エントリに設定する属性フラグ
+// - 戻り値:                  次階層のテーブルポインタ (失敗時は 0)
+static PageTable *get_or_create_next_table(
+    PageTable *current_table, 
+    unsigned long long index,
+    BitmapFrameAllocator *allocator,
+    unsigned long long flags
+) {
+  if (current_table->entries[index] & PAGE_ENTRY_PRESENT) {
+    // 既存のテーブルアドレスを抽出 (下位12bitのフラグをマスク)
+    return (PageTable *)(current_table->entries[index] & ~0xFFFULL);
+  }
+
+  // 新規テーブルの作成とエントリへの登録
+  PageTable *next_table = create_empty_table(allocator);
+  if (!next_table) {
+    return 0;
+  }
+
+  current_table->entries[index] = (unsigned long long)next_table | flags;
+  return next_table;
 }
 
 // ====================================================================================
@@ -43,34 +74,16 @@ PageTable *setup_identity_mapping(BitmapFrameAllocator *allocator, unsigned long
     unsigned long long pt_idx   = (phys_addr >> 12) & 0x1FF;
 
     // --- Level 4: PML4 -> PDPT ---
-    PageTable *pdpt = 0;
-    if (pml4->entries[pml4_idx] & PAGE_ENTRY_PRESENT) {
-      pdpt = (PageTable *)(pml4->entries[pml4_idx] & ~0xFFFULL);
-    } else {
-      pdpt = create_empty_table(allocator);
-      if (!pdpt) return 0;
-      pml4->entries[pml4_idx] = (unsigned long long)pdpt | flags;
-    }
+    PageTable *pdpt = get_or_create_next_table(pml4, pml4_idx, allocator, flags);
+    if (!pdpt) return 0;
 
     // --- Level 3: PDPT -> PD ---
-    PageTable *pd = 0;
-    if (pdpt->entries[pdpt_idx] & PAGE_ENTRY_PRESENT) {
-      pd = (PageTable *)(pdpt->entries[pdpt_idx] & ~0xFFFULL);
-    } else {
-      pd = create_empty_table(allocator);
-      if (!pd) return 0;
-      pdpt->entries[pdpt_idx] = (unsigned long long)pd | flags;
-    }
+    PageTable *pd = get_or_create_next_table(pdpt, pdpt_idx, allocator, flags);
+    if (!pd) return 0;
 
     // --- Level 2: PD -> PT ---
-    PageTable *pt = 0;
-    if (pd->entries[pd_idx] & PAGE_ENTRY_PRESENT) {
-      pt = (PageTable *)(pd->entries[pd_idx] & ~0xFFFULL);
-    } else {
-      pt = create_empty_table(allocator);
-      if (!pt) return 0;
-      pd->entries[pd_idx] = (unsigned long long)pt | flags;
-    }
+    PageTable *pt = get_or_create_next_table(pd, pd_idx, allocator, flags);
+    if (!pt) return 0;
 
     // --- Level 1: PT -> 最終物理アドレス ---
     pt->entries[pt_idx] = phys_addr | flags;
