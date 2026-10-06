@@ -34,7 +34,7 @@ static PageTable *get_or_create_next_table(
 ) {
   if (current_table->entries[index] & PAGE_ENTRY_PRESENT) {
     // 既存のテーブルアドレスを抽出 (下位12bitのフラグをマスク)
-    return (PageTable *)(current_table->entries[index] & ~0xFFFULL);
+    return (PageTable *)(current_table->entries[index] & PAGE_ADDRESS_MASK);
   }
 
   // 新規テーブルの作成とエントリへの登録
@@ -68,10 +68,10 @@ PageTable *setup_identity_mapping(BitmapFrameAllocator *allocator, unsigned long
     unsigned long long phys_addr = page_idx * PAGE_SIZE;
 
     // 階層ごとのインデックス計算 (各9ビット)
-    unsigned long long pml4_idx = (phys_addr >> 39) & 0x1FF;
-    unsigned long long pdpt_idx = (phys_addr >> 30) & 0x1FF;
-    unsigned long long pd_idx   = (phys_addr >> 21) & 0x1FF;
-    unsigned long long pt_idx   = (phys_addr >> 12) & 0x1FF;
+    unsigned long long pml4_idx = (phys_addr >> PML4_SHIFT) & PAGE_INDEX_MASK;
+    unsigned long long pdpt_idx = (phys_addr >> PDPT_SHIFT) & PAGE_INDEX_MASK;
+    unsigned long long pd_idx   = (phys_addr >> PD_SHIFT) & PAGE_INDEX_MASK;
+    unsigned long long pt_idx   = (phys_addr >> PT_SHIFT) & PAGE_INDEX_MASK;
 
     // --- Level 4: PML4 -> PDPT ---
     PageTable *pdpt = get_or_create_next_table(pml4, pml4_idx, allocator, flags);
