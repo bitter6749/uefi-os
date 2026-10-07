@@ -42,13 +42,15 @@ TARGET_IMG  := $(BUILD_DIR)/disk.img
 FONT_BIN    := font.bin
 FONT_OBJ    := $(BUILD_DIR)/font_bin.o
 
-# Source files (all .c and .asm files under src/)
+# Source files (all .c, .asm, and .S files under src/)
 C_SRCS      := $(wildcard $(SRC_DIR)/*.c)
-ASM_SRCS    := $(wildcard $(SRC_DIR)/*.asm)
+NASM_SRCS   := $(wildcard $(SRC_DIR)/*.asm)
+GAS_SRCS    := $(wildcard $(SRC_DIR)/*.S)
 
 C_OBJS      := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(C_SRCS))
-ASM_OBJS    := $(patsubst $(SRC_DIR)/%.asm,$(BUILD_DIR)/%_asm.o,$(ASM_SRCS))
-ALL_OBJS    := $(C_OBJS) $(ASM_OBJS) $(FONT_OBJ)
+NASM_OBJS   := $(patsubst $(SRC_DIR)/%.asm,$(BUILD_DIR)/%_asm.o,$(NASM_SRCS))
+GAS_OBJS    := $(patsubst $(SRC_DIR)/%.S,$(BUILD_DIR)/%_S.o,$(GAS_SRCS))
+ALL_OBJS    := $(C_OBJS) $(NASM_OBJS) $(GAS_OBJS) $(FONT_OBJ)
 
 # Default Target
 .PHONY: all
@@ -59,10 +61,15 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Assemble ASM source files to object files
+# Assemble NASM source files to object files
 $(BUILD_DIR)/%_asm.o: $(SRC_DIR)/%.asm
 	@mkdir -p $(BUILD_DIR)
 	$(ASM) $(ASMFLAGS) $< -o $@
+
+# Assemble GAS source files (.S) to object files
+$(BUILD_DIR)/%_S.o: $(SRC_DIR)/%.S
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
 
 # Convert binary font into linkable PE-COFF object file
 $(FONT_OBJ): $(FONT_BIN)

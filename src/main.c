@@ -2,11 +2,26 @@
 #include "graphics.h"
 #include "console.h"
 #include "heap.h"
+#include "idt.h"
+#include "interrupt.h"
 #include "memory.h"
 #include "paging.h"
 
 // メモリマップ格納用の静的バッファ (4096 * 4 バイト = 16KB)
 static unsigned char memory_map_buffer[4096 * 4];
+
+// 旧型 8259A PIC の全割り込みを遮断する関数
+void pic_disable(void) {
+  // Master / Slave PIC の全 IRQ をマスク (0xFF)
+  __asm__ volatile(
+    "mov $0xFF, %%al\n\t"
+    "out %%al, $0xA1\n\t"
+    "out %%al, $0x21\n\t"
+    :
+    :
+    : "rax"
+  );
+}
 
 // ============================================================================
 // get_memory_map: UEFI からメモリマップを取得する
@@ -227,27 +242,36 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
     } else {
       console_puts(&con, "Failed to setup Page Table.\n");
     }
+
+    // 1. 旧型 PIC の割り込みを無効化し、CPU割り込みをクリア
+    __asm__ volatile("cli");
+    pic_disable();
+
+    // --- IDT (割り込み記述しテーブル) の初期化 --- 
+    interrupt_set_console(&con);  // 例外ハンドラ用コンソール登録
+    idt_init(&allocator);
+    console_puts(&con, "IDT Initialized successfully!\n");
+
+    // ========================================================================
+    // 例外発生テスト (ゼロ除算例外 #DE: Vector 0)
+    // ========================================================================
+    console_puts(&con, "Testing Interrupt Handler (#DE: Divide Error)...\n");
+    
+    __asm__ volatile(
+        "xor %%edx, %%edx\n\t"
+        "mov $10, %%eax\n\t"
+        "mov $0, %%ecx\n\t"
+        "div %%ecx"
+        :
+        :
+        : "eax", "edx", "ecx"
+    );
+    
+    console_puts(&con, "Continuing Kernel Excution...\n");
+
   } else {
     console_puts(&con, "Failed to get Memory Map.\n");
   }
-
-  console_puts(&con, "HELLO WORLD\n");
-  console_puts(&con, "HELLO UEFI OS\n\n");
-
-  for (int i = 0; i < 10; i++) {
-    console_puts(&con, "HELLO SCROOL TEST\n");
-  }
-
-  // コンソールテスト
-  console_puts(&con, "Hello, UEFI Operating System!\n");
-  console_puts(&con, "Testing full ASCII font & numbers:\n");
-
-  console_put_dec(&con, 1234567980);
-  console_puts(&con, "\n");
-
-  console_puts(&con, " - Hex address: ");
-  console_put_hex(&con, 0x10000000, 8);
-  console_puts(&con, "\n");
 
   // 5. 描画結果を表示し続けるために待機
   while (1) {
