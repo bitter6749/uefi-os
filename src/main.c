@@ -4,6 +4,7 @@
 #include "heap.h"
 #include "idt.h"
 #include "interrupt.h"
+#include "lapic.h"
 #include "memory.h"
 #include "paging.h"
 
@@ -224,6 +225,11 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
     // --- 64-bit ページテーブルの作成とCR3登録 ---
     unsigned long long max_phys_addr = get_max_physical_address(&map, &fb);
 
+    // // LAPIC 領域 (0xFEE00000 付近) をマッピング範囲に含める
+    if (max_phys_addr < 0xFEE00000ULL + 0x1000ULL) {
+      max_phys_addr = 0xFEE00000ULL + 0x1000ULL;
+    }
+
     // デバッグ出力で確認
     console_puts(&con, "\nFinal Max Addr: ");
     console_put_hex(&con, max_phys_addr, 16);
@@ -252,22 +258,42 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
     idt_init(&allocator);
     console_puts(&con, "IDT Initialized successfully!\n");
 
-    // ========================================================================
-    // 例外発生テスト (ゼロ除算例外 #DE: Vector 0)
-    // ========================================================================
-    console_puts(&con, "Testing Interrupt Handler (#DE: Divide Error)...\n");
+    // // ========================================================================
+    // // 例外発生テスト (ゼロ除算例外 #DE: Vector 0)
+    // // ========================================================================
+    // console_puts(&con, "Testing Interrupt Handler (#DE: Divide Error)...\n");
     
-    __asm__ volatile(
-        "xor %%edx, %%edx\n\t"
-        "mov $10, %%eax\n\t"
-        "mov $0, %%ecx\n\t"
-        "div %%ecx"
-        :
-        :
-        : "eax", "edx", "ecx"
-    );
+    // __asm__ volatile(
+    //     "xor %%edx, %%edx\n\t"
+    //     "mov $10, %%eax\n\t"
+    //     "mov $0, %%ecx\n\t"
+    //     "div %%ecx"
+    //     :
+    //     :
+    //     : "eax", "edx", "ecx"
+    // );
     
-    console_puts(&con, "Continuing Kernel Excution...\n");
+    // console_puts(&con, "Continuing Kernel Excution...\n");
+
+    // Local APIC タイマーの初期化と開始
+    lapic_timer_init();
+    console_puts(&con, "Local APIC Timer Started!\n");
+
+    // 動作確認用ループ
+    unsigned long long last_tick = 0;
+    while (1) {
+      unsigned long long current_tick = lapic_get_ticks();
+
+      // 100 ticks ごとにカウントを出力して動作確認
+      if (current_tick - last_tick >= 100) {
+        console_puts(&con, "Tick: ");
+        console_put_dec(&con, current_tick);
+        console_puts(&con, "\n");
+        last_tick = current_tick;
+      }
+
+      __asm__ volatile("hlt");    // 次の割り込みが入るまで CPU を休憩させて省電力化
+    }
 
   } else {
     console_puts(&con, "Failed to get Memory Map.\n");

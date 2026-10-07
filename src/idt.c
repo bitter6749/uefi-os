@@ -1,5 +1,6 @@
 #include "idt.h"
 #include "interrupt.h"
+#include "lapic.h"
 
 // 256 個の IDT エントリ配列 (CPU が参照する割り込みテーブルの実体)
 static IDTEntry *idt = 0;
@@ -56,6 +57,7 @@ void idt_init(BitmapFrameAllocator *allocator) {
   // 2. 個別対応する CPU 例外ハンドラを登録
   idt_set_gate(VEC_DE, (void *)isr0, IDT_ATTR_INTERRUPT_GATE);     // #DE: Divide Error
   idt_set_gate(VEC_PF, (void *)isr14, IDT_ATTR_INTERRUPT_GATE);   // #PF: Page Fault
+  idt_set_gate(VEC_TIMER, (void *)isr32, IDT_ATTR_INTERRUPT_GATE);  // タイマー割り込み
 
   // 3. IDTR 構造体のセットアップ
   idtr.limit    = (sizeof(IDTEntry) * IDT_ENTRIES) - 1; // バイト長 - 1

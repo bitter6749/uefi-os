@@ -35,7 +35,7 @@
 #define ADDR_MID_MASK     0xFFFFULL
 #define ADDR_HIGH_MASK    0xFFFFFFFFULL
 #define ADDR_MID_SHIFT    16
-#define ADDR_HIGH_SHIFT  32
+#define ADDR_HIGH_SHIFT   32
 
 // ====================================================================================
 // IDTEntry: x86_64 IDT エントリ構造体 (16 バイト / 128 ビット)

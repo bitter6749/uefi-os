@@ -2,10 +2,12 @@
 
 // C 言語側で実装する例外ハンドラ関数の宣言
 .extern exception_handler
+.extern c_timer_handler
 
 // C 言語側 (idt.c など) から参照できるように関数シンボルを公開
 .global isr0
 .global isr14
+.global isr32
 .global isr_stub_default
 
 // ====================================================================================
@@ -67,6 +69,18 @@ isr0:
 isr14:
   push 14               // vector フィールド用: 割り込み番号 14
   jmp isr_common_stub
+
+// --- 割り込み 32 番: Local APIC タイマー割り込み ---
+isr32:
+  PUSH_ALL              // レジスタ退避
+  
+  mov rcx, rsp          // x64 ABI 用 (第1引数)
+  sub rsp, 40           // パッディング (32byte + 8byte alignment)
+  call c_timer_handler  // C 言語のタイマーハンドラ呼び出し
+  add rsp, 40
+
+  POP_ALL               // レジスタ復元
+  iretq                 // 割り込み復帰
 
 // --- デフォルトハンドラ (未登録の割り込み用) ---
 isr_stub_default:
