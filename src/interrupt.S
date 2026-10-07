@@ -3,11 +3,13 @@
 // C 言語側で実装する例外ハンドラ関数の宣言
 .extern exception_handler
 .extern c_timer_handler
+.extern c_keyboard_handler
 
 // C 言語側 (idt.c など) から参照できるように関数シンボルを公開
 .global isr0
 .global isr14
 .global isr32
+.global isr33
 .global isr_stub_default
 
 // ====================================================================================
@@ -77,6 +79,18 @@ isr32:
   mov rcx, rsp          // x64 ABI 用 (第1引数)
   sub rsp, 40           // パッディング (32byte + 8byte alignment)
   call c_timer_handler  // C 言語のタイマーハンドラ呼び出し
+  add rsp, 40
+
+  POP_ALL               // レジスタ復元
+  iretq                 // 割り込み復帰
+
+// --- 割り込み 33 番: PS/2 キーボード割り込み ---
+isr33:
+  PUSH_ALL              // レジスタ退避
+  
+  mov rcx, rsp          // x64 ABI (第1引数)
+  sub rsp, 40           // パッディング (32byte + 8byte alignment)
+  call c_keyboard_handler // ハンドラ呼び出し
   add rsp, 40
 
   POP_ALL               // レジスタ復元

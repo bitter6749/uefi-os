@@ -58,6 +58,7 @@ void idt_init(BitmapFrameAllocator *allocator) {
   idt_set_gate(VEC_DE, (void *)isr0, IDT_ATTR_INTERRUPT_GATE);     // #DE: Divide Error
   idt_set_gate(VEC_PF, (void *)isr14, IDT_ATTR_INTERRUPT_GATE);   // #PF: Page Fault
   idt_set_gate(VEC_TIMER, (void *)isr32, IDT_ATTR_INTERRUPT_GATE);  // タイマー割り込み
+  idt_set_gate(33, (void *)isr33, IDT_ATTR_INTERRUPT_GATE);  // キーボード割り込み
 
   // 3. IDTR 構造体のセットアップ
   idtr.limit    = (sizeof(IDTEntry) * IDT_ENTRIES) - 1; // バイト長 - 1

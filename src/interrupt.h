@@ -65,6 +65,7 @@ typedef struct {
 void isr0(void);                // #DE: Divide Error
 void isr14(void);               // #PF: Page Fault
 void isr32(void);               // タイマー割り込み
+void isr33(void);               // キーボード割り込み
 void isr_stub_default(void);    // デフォルトハンドラ
 
 // ====================================================================================

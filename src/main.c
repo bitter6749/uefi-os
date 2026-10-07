@@ -4,25 +4,14 @@
 #include "heap.h"
 #include "idt.h"
 #include "interrupt.h"
+#include "keyboard.h"
 #include "lapic.h"
 #include "memory.h"
 #include "paging.h"
+#include "pic.h"
 
 // メモリマップ格納用の静的バッファ (4096 * 4 バイト = 16KB)
 static unsigned char memory_map_buffer[4096 * 4];
-
-// 旧型 8259A PIC の全割り込みを遮断する関数
-void pic_disable(void) {
-  // Master / Slave PIC の全 IRQ をマスク (0xFF)
-  __asm__ volatile(
-    "mov $0xFF, %%al\n\t"
-    "out %%al, $0xA1\n\t"
-    "out %%al, $0x21\n\t"
-    :
-    :
-    : "rax"
-  );
-}
 
 // ============================================================================
 // get_memory_map: UEFI からメモリマップを取得する
@@ -249,9 +238,9 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
       console_puts(&con, "Failed to setup Page Table.\n");
     }
 
-    // 1. 旧型 PIC の割り込みを無効化し、CPU割り込みをクリア
+    // cli で割り込みを一時停止
     __asm__ volatile("cli");
-    pic_disable();
+    pic_remap();
 
     // --- IDT (割り込み記述しテーブル) の初期化 --- 
     interrupt_set_console(&con);  // 例外ハンドラ用コンソール登録
@@ -275,12 +264,16 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
     
     // console_puts(&con, "Continuing Kernel Excution...\n");
 
+    // キーボードドライバの初期化
+    keyboard_init();
+    console_puts(&con, "Keyboard Ready. Type something.\n");
     // Local APIC タイマーの初期化と開始
     lapic_timer_init();
     console_puts(&con, "Local APIC Timer Started!\n");
 
     // 動作確認用ループ
     unsigned long long last_tick = 0;
+    int scancode;
     while (1) {
       unsigned long long current_tick = lapic_get_ticks();
 
@@ -292,9 +285,20 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
         last_tick = current_tick;
       }
 
-      __asm__ volatile("hlt");    // 次の割り込みが入るまで CPU を休憩させて省電力化
-    }
+      while ((scancode = keyboard_pop_scancode()) != KBD_SCANCODE_EMPTY) {
+        if (scancode == KBD_RESP_ACK || scancode == KBD_RESP_RESEND) {
+          continue;
+        }
 
+        // 通常のスキャンコード (キー入力) のみを表示
+        console_puts(&con, "Scancode: ");
+        console_put_hex(&con, (unsigned char)scancode, 2);
+        console_puts(&con, "\n");
+      }
+
+      // 次の割り込みが入るまで CPU を休憩させて省電力化
+      __asm__ volatile("hlt");
+    }
   } else {
     console_puts(&con, "Failed to get Memory Map.\n");
   }
