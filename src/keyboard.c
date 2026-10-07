@@ -1,7 +1,6 @@
 #include "keyboard.h"
 #include "io.h"
 #include "lapic.h"
-#include "pic.h"
 
 static KeyBuffer g_key_buffer;
 
@@ -51,9 +50,6 @@ void c_keyboard_handler(void) {
       keyboard_push_scancode(scancode);
     }
   }
-
-  // 2. 8259A Master PIC へ EOI (0x20) を送信 (IRQ1 の完了通知)
-  outb(PIC_MASTER_CMD, 0x20);
 
   // 3. 割り込み完了通知 (EOI) を Local APIC に送信
   lapic_eoi();

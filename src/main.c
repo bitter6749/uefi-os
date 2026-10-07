@@ -9,6 +9,7 @@
 #include "memory.h"
 #include "paging.h"
 #include "pic.h"
+#include "ioapic.h"
 
 // メモリマップ格納用の静的バッファ (4096 * 4 バイト = 16KB)
 static unsigned char memory_map_buffer[4096 * 4];
@@ -240,12 +241,15 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
 
     // cli で割り込みを一時停止
     __asm__ volatile("cli");
-    pic_remap();
+    pic_disable();
 
     // --- IDT (割り込み記述しテーブル) の初期化 --- 
     interrupt_set_console(&con);  // 例外ハンドラ用コンソール登録
     idt_init(&allocator);
     console_puts(&con, "IDT Initialized successfully!\n");
+
+    // I/O APIC の初期化
+    ioapic_init();
 
     // // ========================================================================
     // // 例外発生テスト (ゼロ除算例外 #DE: Vector 0)
