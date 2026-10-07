@@ -4,6 +4,27 @@
 #include "console.h"
 
 // ====================================================================================
+// x86_64 CPU 例外ベクター番号の定義
+// ====================================================================================
+#define VEC_DE  0       // #DE: Divide Error
+#define VEC_DB  1       // #DB: Debug Exception
+#define VEC_NMI 2       // NMI: Non-Maskable Interrupt
+#define VEC_BP  3       // #BP: Breakpoint
+#define VEC_OF  4       // #OF: Overflow
+#define VEC_BR  5       // #BR: BOUND Range Exceeded
+#define VEC_UD  6       // #UD: Invalid Opcode
+#define VEC_NM  7       // #NM: Device Not Avaliable
+#define VEC_DF  8       // #DF: Double Fault
+#define VEC_TS  10      // #TS: Invalid TSS
+#define VEC_NP  11      // #NP: Segment Not Present
+#define VEC_SS  12      // #SS: Stack Fault
+#define VEC_GP  13      // #GP: General Protection Fault
+#define VEC_PF  14      // #PF: Page Fault
+
+// デバッグ・ログ表示用の定数
+#define HEX_DIGITS_64BIT  16
+
+// ====================================================================================
 // InterruptFrame: アセンブリ (interrupt.S) から渡されるスタックレイアウト構造体
 // ====================================================================================
 // PUSH_ALL および CPU の自動スタック退避順序に厳密に一致させる

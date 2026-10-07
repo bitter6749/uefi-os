@@ -30,6 +30,12 @@
 #define IDT_ATTR_TRAP_GATE      0x8F    // Preset(1) | DPL=0(Kernel) | Type=0xF(Trap Gate)
 #define IDT_ATTR_USER_GATE      0xEE    // Preset(1) | DPL=3(User)   | Type=0xE(Interrupt Gate)
 
+// アドレス分割操作定数
+#define ADDR_LOW_MASK     0xFFFFULL
+#define ADDR_MID_MASK     0xFFFFULL
+#define ADDR_HIGH_MASK    0xFFFFFFFFULL
+#define ADDR_MID_SHIFT    16
+#define ADDR_HIGH_SHIFT  32
 
 // ====================================================================================
 // IDTEntry: x86_64 IDT エントリ構造体 (16 バイト / 128 ビット)
@@ -57,7 +63,7 @@ typedef struct {
 // ====================================================================================
 // idt_init: IDT の初期化 (256 個のテーブル構築と lidt の実行)
 // ====================================================================================
-void idt_init(BitmapFrameAllocator *allocator);
+void idt_init();
 
 // ====================================================================================
 // idt_set_gate: 特定の割り込みベクトルにハンドラを設定する関数

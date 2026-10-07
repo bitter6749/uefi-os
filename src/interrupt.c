@@ -11,21 +11,21 @@ void interrupt_set_console(Console *con) {
 // 例外番号に対応する名前文字列の取得
 static const char *get_exception_name(unsigned long long vector) {
   switch (vector) {
-    case 0:   return "#DE: Divide Error";
-    case 1:   return "#DB: Debug Exception";
-    case 2:   return "NMI: Non-Maskable Interrupt";
-    case 3:   return "#BP: Breakepoint";
-    case 4:   return "#OF: OVerFlow";
-    case 5:   return "#BR: BOUND Range Exceeded";
-    case 6:   return "#UD: Invalid Opcode";
-    case 7:   return "#NM: Device Not Avaliable";
-    case 8:   return "#DF: Double Fault";
-    case 10:  return "#TS: Invalid TSS";
-    case 11:  return "#NP: Segment Not Present";
-    case 12:  return "#SS: Stack Fault";
-    case 13:  return "#GP: General Protection Fault";
-    case 14:  return "#PF: Page Fault";
-    default:  return "Unknown Exception";
+    case VEC_DE:    return "#DE: Divide Error";
+    case VEC_DB:    return "#DB: Debug Exception";
+    case VEC_NMI:   return "NMI: Non-Maskable Interrupt";
+    case VEC_BP:    return "#BP: Breakepoint";
+    case VEC_OF:    return "#OF: OVerFlow";
+    case VEC_BR:    return "#BR: BOUND Range Exceeded";
+    case VEC_UD:    return "#UD: Invalid Opcode";
+    case VEC_NM:    return "#NM: Device Not Avaliable";
+    case VEC_DF:    return "#DF: Double Fault";
+    case VEC_TS:    return "#TS: Invalid TSS";
+    case VEC_NP:    return "#NP: Segment Not Present";
+    case VEC_SS:    return "#SS: Stack Fault";
+    case VEC_GP:    return "#GP: General Protection Fault";
+    case VEC_PF:    return "#PF: Page Fault";
+    default:        return "Unknown Exception";
   }
 }
 
@@ -52,7 +52,7 @@ void exception_handler(InterruptFrame *frame) {
   console_puts(con, ")\n");
 
   console_puts(con, "Error Code: ");
-  console_put_hex(con, frame->error_code, 16);
+  console_put_hex(con, frame->error_code, HEX_DIGITS_64BIT);
   console_puts(con, "\n");
 
   console_puts(con, "RIP      : ");
@@ -66,7 +66,7 @@ void exception_handler(InterruptFrame *frame) {
     unsigned long long cr2;
     __asm__ volatile("mov %%cr2, %0" : "=r"(cr2));
     console_puts(con, "Fault Address (CR2): ");
-    console_put_hex(con, cr2, 16);
+    console_put_hex(con, cr2, HEX_DIGITS_64BIT);
     console_puts(con, "\n");
   }
 

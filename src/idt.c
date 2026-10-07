@@ -15,7 +15,7 @@ void idt_set_gate(unsigned char vector, void *handler, unsigned char attribute) 
   unsigned long long handler_addr = (unsigned long long)handler;
 
   // 64-bit アドレスを 3 つの領域に分割してセット
-  idt[vector].offset_low        = (unsigned short)(handler_addr & 0xFFFFULL);
+  idt[vector].offset_low        = (unsigned short)(handler_addr & ADDR_LOW_MASK);
 
   // UEFI が設定している現在の CS (Code Segment) レジスタを取得してセット
   unsigned short cs;
@@ -24,15 +24,15 @@ void idt_set_gate(unsigned char vector, void *handler, unsigned char attribute) 
   idt[vector].segment_selector  = cs; // GDT のカーネルコードセグメント (Kernel Code Segment)
   idt[vector].ist               = 0;    // IST (Interrupt Stack Table) は未使用 (0)
   idt[vector].type_attributes   = attribute;
-  idt[vector].offset_mid        = (unsigned short)((handler_addr >> 16) & 0xFFFFULL);
-  idt[vector].offset_high       = (unsigned int)((handler_addr >> 32) & 0xFFFFFFFFULL);
+  idt[vector].offset_mid        = (unsigned short)((handler_addr >> ADDR_MID_SHIFT) & ADDR_MID_MASK);
+  idt[vector].offset_high       = (unsigned int)((handler_addr >> ADDR_HIGH_SHIFT) & ADDR_HIGH_MASK);
   idt[vector].reserved          = 0;
 }
 
 // ====================================================================================
 // idt_init: IDT を初期化し、 lidt 命令で CPU レジスタに登録する
 // ====================================================================================
-void idt_init(BitmapFrameAllocator *allocator) {
+void idt_init() {
   // 4KB (1ページ) の領域を確保 (256エントリ = 4096バイト)
   // idt = (IDTEntry *)alloc_frame(allocator);
 
@@ -40,14 +40,14 @@ void idt_init(BitmapFrameAllocator *allocator) {
   //   while (1) { __asm__ volatile("hlt"); }
   // }
 
-  // 1. 全 256 エントリにデフォルトハンドラを登録
-  for (int i = 0; i < IDT_ENTRIES; i++) {
-    idt_set_gate(i, (void *)isr_stub_default, IDT_ATTR_INTERRUPT_GATE);
-  }
+  // // 1. 全 256 エントリにデフォルトハンドラを登録
+  // for (int i = 0; i < IDT_ENTRIES; i++) {
+  //   idt_set_gate(i, (void *)isr_stub_default, IDT_ATTR_INTERRUPT_GATE);
+  // }
 
   // 2. 個別対応する CPU 例外ハンドラを登録
-  idt_set_gate(0, (void *)isr0, IDT_ATTR_INTERRUPT_GATE);     // #DE: Divide Error
-  idt_set_gate(14, (void *)isr14, IDT_ATTR_INTERRUPT_GATE);   // #PF: Page Fault
+  idt_set_gate(VEC_DE, (void *)isr0, IDT_ATTR_INTERRUPT_GATE);     // #DE: Divide Error
+  idt_set_gate(VEC_PF, (void *)isr14, IDT_ATTR_INTERRUPT_GATE);   // #PF: Page Fault
 
   // 3. IDTR 構造体のセットアップ
   idtr.limit    = (sizeof(IDTEntry) * IDT_ENTRIES) - 1; // バイト長 - 1
