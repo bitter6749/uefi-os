@@ -32,9 +32,6 @@
 // と判断し、2 回目以降のタイマー割り込みを送らなくなります。
 // ============================================================================
 
-// Local APIC MMIO ベース物理アドレス (標準値)
-#define LAPIC_BASE_ADDR           0xFEE00000ULL
-
 // 割り込みベクター番号定義 (0 ~ 31 は CPU 例外のため、 32 以降を使用)
 #define VEC_TIMER                 32    // 0x20: local APIC タイマー用割り込み
 
@@ -52,14 +49,23 @@
 // ============================================================================
 // Local APIC レジスタ設定用フラグ・定数
 // ============================================================================
-#define LAPIC_SPURIOUS_ENABLE     0x100   // APIC ソフトウェア有効化フラグ (Bit 8)
-#define LAPIC_TIMER_PERIODIC      0x20000 // タイマー Periodic (周期) モードフラグ (Bit 17)
-#define LAPIC_TIMER_DIV_16        0x03    // 分周比: 1/16 (Bit 0,1,3 で設定)
+#define LAPIC_BASE_ADDR           0xFEE00000ULL // Local APIC MMIO ベース物理アドレス (標準値)
+#define LAPIC_BASE_MASK           0xFFFFF000ULL // MSR から物理アドレスを抽出するマスク
+
+#define LAPIC_SPURIOUS_ENABLE     0x100         // APIC ソフトウェア有効化フラグ (Bit 8)
+#define LAPIC_SPURIOUS_VECTOR     0xFF          // スプリアス割り込み用ダミーベクタ
+
+#define LAPIC_TIMER_PERIODIC      0x20000       // タイマー Periodic (周期) モードフラグ (Bit 17)
+#define LAPIC_TIMER_DIV_16        0x03          // 分周比: 1/16 (Bit 0,1,3 で設定)
+
+#define LAPIC_TIMER_INIT_COUNT    1000000       // 1ms ~ 数ms 周期のカウント初期値
+
+// --- MSR (Model Specific Register) 定数 ---
+#define MSR_IA32_APIC_BASE        0x1B          // APIC ベースアドレス取得用 MSR
 
 // ============================================================================
 // 関数プロトタイプ宣言
 // ============================================================================
-
 
 // Local APIC の初期化および Periodic タイマーの開始
 void lapic_timer_init(void);
