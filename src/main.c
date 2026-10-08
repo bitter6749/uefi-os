@@ -279,25 +279,32 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
     unsigned long long last_tick = 0;
     int scancode;
     while (1) {
-      unsigned long long current_tick = lapic_get_ticks();
+      // unsigned long long current_tick = lapic_get_ticks();
 
-      // 100 ticks ごとにカウントを出力して動作確認
-      if (current_tick - last_tick >= 100) {
-        console_puts(&con, "Tick: ");
-        console_put_dec(&con, current_tick);
-        console_puts(&con, "\n");
-        last_tick = current_tick;
-      }
+      // // 100 ticks ごとにカウントを出力して動作確認
+      // if (current_tick - last_tick >= 100) {
+      //   console_puts(&con, "Tick: ");
+      //   console_put_dec(&con, current_tick);
+      //   console_puts(&con, "\n");
+      //   last_tick = current_tick;
+      // }
 
       while ((scancode = keyboard_pop_scancode()) != KBD_SCANCODE_EMPTY) {
         if (scancode == KBD_RESP_ACK || scancode == KBD_RESP_RESEND) {
           continue;
         }
 
-        // 通常のスキャンコード (キー入力) のみを表示
-        console_puts(&con, "Scancode: ");
-        console_put_hex(&con, (unsigned char)scancode, 2);
-        console_puts(&con, "\n");
+        if (scancode == 0xAA) {
+          console_puts(&con, "[L-Shift Released]\n");
+        }
+
+        // スキャンコードを ASCII 文字に変換
+        char ch = scancode_to_ascii((unsigned char)scancode);
+
+        // 文字に変換できたらコンソールに出力
+        if (ch != 0) {
+          console_putc(&con, ch);
+        }
       }
 
       // 次の割り込みが入るまで CPU を休憩させて省電力化

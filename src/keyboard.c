@@ -3,6 +3,26 @@
 #include "lapic.h"
 
 static KeyBuffer g_key_buffer;
+static volatile int g_shift_pressed = 0; // shift キー押下状態フラグ
+
+// --- Scan Code Set 1 -> ASCII 変換テーブル ---
+// 通常時 (0x00 ~ 0x39)
+static const char scancode_table_normal[0x40] = {
+  0,   27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b', 
+  '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
+  0,  'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`',
+  0, '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/',   0,
+  '*',    0, ' '
+};
+
+// Shift 押下時
+static const char scancode_table_shift[0x40] = {
+  0,   27, '!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '\b',
+  '\t', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '{', '}', '\n',
+  0,  'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', '\"', '~',
+  0,  '|', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '<', '>', '?',   0,
+  '*',    0, ' '
+};
 
 // ====================================================================================
 // keyboard_init: キーボードドライバおよび内蔵バッファの初期化を行う
@@ -10,6 +30,7 @@ static KeyBuffer g_key_buffer;
 void keyboard_init(void) {
   g_key_buffer.head = 0;
   g_key_buffer.tail = 0;
+  g_shift_pressed   = 0;
 }
 
 // バッファに 1 バイト増加 (割り込みハンドラ内から呼び出し)
@@ -44,6 +65,14 @@ void c_keyboard_handler(void) {
   while (inb(KBD_STATUS_PORT) & KBD_STATUS_OBF) {
     unsigned char scancode = inb(KBD_DATA_PORT);
 
+    if (scancode == SCANCODE_LSHIFT_MAKE || scancode == SCANCODE_RSHIFT_MAKE) {
+      g_shift_pressed = 1;
+    }
+
+    if (scancode == SCANCODE_LSHIFT_BREAK || scancode == SCANCODE_RSHIFT_BREAK) {
+      g_shift_pressed = 0;
+    }
+
     // 0xFA (ACK) や 0xAA (Self-Test Passed) などの応答コードは
     // リングバッファに入れずに無視 (無視せずとも処理をスキップ) する
     if (scancode != KBD_RESP_ACK && scancode != KBD_RESP_BAT_SUCCESS) {
@@ -55,6 +84,27 @@ void c_keyboard_handler(void) {
   lapic_eoi();
 }
 
+// ====================================================================================
+// scancode_to_ascii: スキャンコードを ASCII 文字へ変換する
+// ====================================================================================
+char scancode_to_ascii(unsigned char scancode) {
+  // Break コード (キーを離したとき) は無視する (Bit 7 が 1)
+  if (scancode & 0x80) {
+    return 0;
+  }
+
+  // テーブルの範囲外チェック
+  if (scancode >= 0x40) {
+    return 0;
+  }
+
+  // Shift 状態に応じて文字を取得
+  if (g_shift_pressed) {
+    return scancode_table_shift[scancode];
+  } else {
+    return scancode_table_normal[scancode];
+  }
+}
 
 
 

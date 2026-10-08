@@ -18,6 +18,12 @@
 #define KBD_BUFFER_SIZE       256     // リングバッファサイズ
 #define KBD_SCANCODE_EMPTY    (-1)    // バッファが空の時の戻り値
 
+// --- Scan Code Set 1 修飾キー定義 ---
+#define SCANCODE_LSHIFT_MAKE    0x2A
+#define SCANCODE_LSHIFT_BREAK   0xAA
+#define SCANCODE_RSHIFT_MAKE    0x36
+#define SCANCODE_RSHIFT_BREAK   0xB6
+
 // ====================================================================================
 // キーボード・リングバッファ構造体
 // ====================================================================================
@@ -41,5 +47,12 @@ void c_keyboard_handler(void);
 // keyboard_pop_scancode: バッファからスキャンコードを 1 つ取り出す
 // ====================================================================================
 int keyboard_pop_scancode(void);  // バッファからスキャンコードを 1 つ取り出す (空なら -1)
+
+// ====================================================================================
+// scancode_to_ascii: スキャンコードを ASCII 文字に変換する関数
+// ====================================================================================
+// - 引数1 (scancode):  変換するスキャンコード
+// - 戻り値:            ASCII コード (文字にならないキーは 0 を返す)
+char scancode_to_ascii(unsigned char scancode);
 
 #endif

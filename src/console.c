@@ -33,23 +33,54 @@ void console_scroll(Console *con) {
 // console_putc: コンソールに文字を 1 文字出力する
 // =========================================================================
 void console_putc(Console *con, char c) {
-  // 1. 改行コード ('\n') の処理
+  // -----------------------------------------------------------------------
+  // 1. バックスペース ('\b': 0x08) の処理
+  // -----------------------------------------------------------------------
+  if (c == '\b') {
+    // これ以上左に戻れない場合 (行頭) の制御
+    if (con->cursor_x >= FONT_WIDTH) {
+      con->cursor_x -= FONT_WIDTH;
+    } else if (con->cursor_y >= FONT_HEIGHT) {
+      // 前の行の右端に戻す場合 (コンソールの横幅に合わせて調整)
+      con->cursor_y -= FONT_HEIGHT;
+      con->cursor_x = (con->fb->width / FONT_WIDTH - 1) * FONT_WIDTH;
+    } else {
+      return; // 画面最左上なら何もしない
+    }
+
+    // カーソル位置の 1 文字分を背景色で塗りつぶして消去
+    draw_rect(con->fb, con->cursor_x, con->cursor_y, FONT_WIDTH, FONT_HEIGHT, con->bg_color);
+    return;
+  }
+
+  // -----------------------------------------------------------------------
+  // 2. 改行コード ('\n') の処理
+  // -----------------------------------------------------------------------
   if (c == '\n') {
     con->cursor_x = 0;    // 左端に戻す
     con->cursor_y += FONT_HEIGHT;  // 1行下へ進める
-  } else {
-    // 2. 通常文字の描画
-    draw_char(con->fb, con->cursor_x, con->cursor_y, c, con->fg_color);
-    con->cursor_x += FONT_WIDTH;       // 次の文字位置へ (横8ドット進める)
 
-    // 右端に達したら自動折返し
-    if (con->cursor_x + FONT_WIDTH > con->fb->width) {
-      con->cursor_x = 0;
-      con->cursor_y += FONT_HEIGHT;
+    // 画面下端を超えた場合のスクロール処理
+    if (con->cursor_y + FONT_HEIGHT > con->fb->height) {
+      console_scroll(con);
+      con->cursor_y = con->fb->height - FONT_HEIGHT; // 最下行にカーソルを固定
     }
+    return;
   }
 
-  // 3. 画面下端を超えた場合のスクロール処理
+  // -----------------------------------------------------------------------
+  // 3. 通常文字の描画
+  // -----------------------------------------------------------------------
+  draw_char(con->fb, con->cursor_x, con->cursor_y, c, con->fg_color);
+  con->cursor_x += FONT_WIDTH;       // 次の文字位置へ (横8ドット進める)
+
+  // 右端に達したら自動折返し
+  if (con->cursor_x + FONT_WIDTH > con->fb->width) {
+    con->cursor_x = 0;
+    con->cursor_y += FONT_HEIGHT;
+  }
+
+  // 4. 画面下端を超えた場合のスクロール処理
   if (con->cursor_y + FONT_HEIGHT > con->fb->height) {
     console_scroll(con);
     con->cursor_y = con->fb->height - FONT_HEIGHT; // 最下行にカーソルを固定
