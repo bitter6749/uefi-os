@@ -24,6 +24,14 @@
 #define SCANCODE_RSHIFT_MAKE    0x36
 #define SCANCODE_RSHIFT_BREAK   0xB6
 
+#define SCANCODE_BREAK_BIT      0x80  // Bit 7: 1 の場合は Break コード (キー離下)
+#define SCANCODE_PREFIX_E0      0xE0  // 2バイト拡張キーのプレフィックス
+#define SCANCODE_TABLE_MAX      0x40  // 変換テーブル有効範囲 (0x00 ~ 0x3F)
+
+// --- キー状態値 ---
+#define SHIFT_RELLEASED         0
+#define SHIFT_PRESSED           1
+
 // ====================================================================================
 // キーボード・リングバッファ構造体
 // ====================================================================================
@@ -49,10 +57,9 @@ void c_keyboard_handler(void);
 int keyboard_pop_scancode(void);  // バッファからスキャンコードを 1 つ取り出す (空なら -1)
 
 // ====================================================================================
-// scancode_to_ascii: スキャンコードを ASCII 文字に変換する関数
+// keyboard_getchar: スキャンコードを ASCII 文字として取り出す 
 // ====================================================================================
-// - 引数1 (scancode):  変換するスキャンコード
-// - 戻り値:            ASCII コード (文字にならないキーは 0 を返す)
-char scancode_to_ascii(unsigned char scancode);
+// - 戻り値:            ASCII コード (文字にならないキーは '\0' を返す)
+char keyboard_getchar(void);
 
 #endif

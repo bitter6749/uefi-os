@@ -277,7 +277,7 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
 
     // 動作確認用ループ
     unsigned long long last_tick = 0;
-    int scancode;
+    char c;
     while (1) {
       // unsigned long long current_tick = lapic_get_ticks();
 
@@ -289,22 +289,9 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
       //   last_tick = current_tick;
       // }
 
-      while ((scancode = keyboard_pop_scancode()) != KBD_SCANCODE_EMPTY) {
-        if (scancode == KBD_RESP_ACK || scancode == KBD_RESP_RESEND) {
-          continue;
-        }
-
-        if (scancode == 0xAA) {
-          console_puts(&con, "[L-Shift Released]\n");
-        }
-
-        // スキャンコードを ASCII 文字に変換
-        char ch = scancode_to_ascii((unsigned char)scancode);
-
-        // 文字に変換できたらコンソールに出力
-        if (ch != 0) {
-          console_putc(&con, ch);
-        }
+      c = keyboard_getchar();
+      if (c != '\0') {
+        console_putc(&con, c);
       }
 
       // 次の割り込みが入るまで CPU を休憩させて省電力化
