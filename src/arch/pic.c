@@ -1,5 +1,5 @@
-#include "pic.h"
-#include "io.h"
+#include "arch/pic.h"
+#include "arch/io.h"
 
 // ====================================================================================
 // pic_disable: 8259A PIC の全割り込みマスク

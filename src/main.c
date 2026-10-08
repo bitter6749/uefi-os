@@ -1,15 +1,14 @@
 #include "efi.h"
-#include "graphics.h"
-#include "console.h"
-#include "heap.h"
-#include "idt.h"
-#include "interrupt.h"
-#include "keyboard.h"
-#include "lapic.h"
-#include "memory.h"
-#include "paging.h"
-#include "pic.h"
-#include "ioapic.h"
+#include "drivers/graphics.h"
+#include "drivers/console.h"
+#include "memmap/heap.h"
+#include "arch/idt.h"
+#include "arch/interrupt.h"
+#include "drivers/keyboard.h"
+#include "arch/lapic.h"
+#include "memmap/paging.h"
+#include "arch/pic.h"
+#include "arch/ioapic.h"
 
 // メモリマップ格納用の静的バッファ (4096 * 4 バイト = 16KB)
 static unsigned char memory_map_buffer[4096 * 4];
@@ -276,7 +275,7 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
     console_puts(&con, "Local APIC Timer Started!\n");
 
     // 動作確認用ループ
-    unsigned long long last_tick = 0;
+    // unsigned long long last_tick = 0;
     char c;
     while (1) {
       // unsigned long long current_tick = lapic_get_ticks();

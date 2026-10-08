@@ -1,7 +1,7 @@
 #ifndef IDT_H
 #define IDT_H
 
-#include "memory.h"
+#include "memmap/memory.h"
 
 // ============================================================================
 // IDT (Interrupt Descriptor Table) の概要

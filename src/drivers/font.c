@@ -1,11 +1,11 @@
-#include "font.h"
-#include "graphics.h"
+#include "drivers/font.h"
+#include "drivers/graphics.h"
 
 // objcopy によってリンクされたフォントバイナリの先頭シンボル
-extern const unsigned char _binary_font_bin_start[];
+extern const unsigned char _binary_assets_font_bin_start[];
 
 void draw_char(FrameBuffer *fb, unsigned int x, unsigned int y, char c, unsigned int color) {
-  const unsigned char *font = &_binary_font_bin_start[(unsigned char)c * FONT_HEIGHT];
+  const unsigned char *font = &_binary_assets_font_bin_start[(unsigned char)c * FONT_HEIGHT];
 
   for (int dy = 0; dy < FONT_HEIGHT; dy++) {
     unsigned char line = font[dy];

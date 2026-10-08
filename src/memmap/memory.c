@@ -1,4 +1,4 @@
-#include "memory.h"
+#include "memmap/memory.h"
 #include "efi.h"
 
 // ビットマップ操作ヘルパー関数 (静的関数)

@@ -1,6 +1,6 @@
-#include "console.h"
-#include "font.h"
-#include "graphics.h"
+#include "drivers/console.h"
+#include "drivers/font.h"
+#include "drivers/graphics.h"
 
 // =========================================================================
 // console_init: コンソールを初期化する

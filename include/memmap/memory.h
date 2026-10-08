@@ -2,7 +2,7 @@
 #define MEMORY_H
 
 #include "efi.h"
-#include "graphics.h"
+#include "drivers/graphics.h"
 
 // ====================================================================================
 // メモリ管理用の定数定義

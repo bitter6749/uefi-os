@@ -19,7 +19,12 @@ DD          := dd
 # -mno-red-zone: x86_64のRed Zone(128バイト)を無効化（割り込み処理でのスタック破壊防止）
 # -nostdlib: ホストOSの標準ライブラリをリンクしない
 CFLAGS      := -Wall -Wextra -O2 -ffreestanding -fno-stack-protector \
-               -fno-stack-check -mno-red-zone -nostdlib -Iinclude -Isrc
+               -fno-stack-check -mno-red-zone -nostdlib
+
+# または find で include は以下の全ディレクトリを自動取得する場合
+INCDIRS := $(shell find include -type d)
+CFLAGS += $(addprefix -I, $(INCDIRS)) -Isrc
+
 ASMFLAGS    := -f win64
 LDFLAGS     := -e efi_main --subsystem 10
 
@@ -39,13 +44,13 @@ TARGET_EFI  := $(BUILD_DIR)/BOOTX64.EFI
 TARGET_IMG  := $(BUILD_DIR)/disk.img
 
 # Font Binary Asset
-FONT_BIN    := font.bin
+FONT_BIN    := assets/font.bin
 FONT_OBJ    := $(BUILD_DIR)/font_bin.o
 
 # Source files (all .c, .asm, and .S files under src/)
-C_SRCS      := $(wildcard $(SRC_DIR)/*.c)
-NASM_SRCS   := $(wildcard $(SRC_DIR)/*.asm)
-GAS_SRCS    := $(wildcard $(SRC_DIR)/*.S)
+C_SRCS      := $(shell find $(SRC_DIR) -name "*.c")
+NASM_SRCS   := $(shell find $(SRC_DIR) -name "*.asm")
+GAS_SRCS    := $(shell find $(SRC_DIR) -name "*.S")
 
 C_OBJS      := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(C_SRCS))
 NASM_OBJS   := $(patsubst $(SRC_DIR)/%.asm,$(BUILD_DIR)/%_asm.o,$(NASM_SRCS))
@@ -58,17 +63,17 @@ all: $(TARGET_IMG)
 
 # Compile C source files to object files
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Assemble NASM source files to object files
 $(BUILD_DIR)/%_asm.o: $(SRC_DIR)/%.asm
-	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(ASM) $(ASMFLAGS) $< -o $@
 
 # Assemble GAS source files (.S) to object files
 $(BUILD_DIR)/%_S.o: $(SRC_DIR)/%.S
-	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Convert binary font into linkable PE-COFF object file

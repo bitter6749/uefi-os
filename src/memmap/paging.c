@@ -1,5 +1,5 @@
-#include "paging.h"
-#include "memory.h"
+#include "memmap/paging.h"
+#include "memmap/memory.h"
 
 // ====================================================================================
 // ページテーブル用メモリ (4KB) を割り当てて 0 でクリアする内部ヘルパー関数

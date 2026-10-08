@@ -1,4 +1,4 @@
-#include "graphics.h"
+#include "drivers/graphics.h"
 
 void draw_pixel(FrameBuffer *fb, unsigned int x, unsigned int y, unsigned int color) {
   // 画面境界外への不正メモリアクセスを防ぐ (保護ガード)

@@ -1,7 +1,7 @@
-#include "idt.h"
-#include "interrupt.h"
-#include "lapic.h"
-#include "keyboard.h"
+#include "arch/idt.h"
+#include "arch/interrupt.h"
+#include "arch/lapic.h"
+#include "drivers/keyboard.h"
 
 // 256 個の IDT エントリ配列 (CPU が参照する割り込みテーブルの実体)
 static IDTEntry *idt = 0;

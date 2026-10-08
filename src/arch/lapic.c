@@ -1,4 +1,4 @@
-#include "lapic.h"
+#include "arch/lapic.h"
 
 #define INT_SIZE  32
 

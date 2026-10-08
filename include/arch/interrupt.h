@@ -1,7 +1,7 @@
 #ifndef INTERRUPT_H
 #define INTERRUPT_H
 
-#include "console.h"
+#include "drivers/console.h"
 
 // ====================================================================================
 // x86_64 CPU 例外ベクター番号の定義

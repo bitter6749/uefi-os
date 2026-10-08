@@ -1,5 +1,5 @@
-#include "interrupt.h"
-#include "console.h"
+#include "arch/interrupt.h"
+#include "drivers/console.h"
 
 static Console *global_console = 0;
 

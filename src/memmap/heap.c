@@ -1,5 +1,5 @@
-#include "heap.h"
-#include "memory.h"
+#include "memmap/heap.h"
+#include "memmap/memory.h"
 
 #define HEAP_HEADER_SIZE  sizeof(HeapHeader)
 

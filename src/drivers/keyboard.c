@@ -1,6 +1,6 @@
-#include "keyboard.h"
-#include "io.h"
-#include "lapic.h"
+#include "drivers/keyboard.h"
+#include "arch/io.h"
+#include "arch/lapic.h"
 
 static KeyBuffer g_key_buffer;
 static volatile int g_shift_pressed = SHIFT_RELLEASED; // shift キー押下状態フラグ

@@ -1,4 +1,4 @@
-#include "ioapic.h"
+#include "arch/ioapic.h"
 
 // I/O APIC レジスタを書き換えよう MMIO アドレス構造体
 typedef struct {
