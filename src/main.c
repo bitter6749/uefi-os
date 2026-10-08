@@ -9,6 +9,7 @@
 #include "memmap/paging.h"
 #include "arch/pic.h"
 #include "arch/ioapic.h"
+#include "shell/shell.h"
 
 // メモリマップ格納用の静的バッファ (4096 * 4 バイト = 16KB)
 static unsigned char memory_map_buffer[4096 * 4];
@@ -276,7 +277,9 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
 
     // 動作確認用ループ
     // unsigned long long last_tick = 0;
-    char c;
+
+    KernelShell shell;
+    shell_init(&shell, &con);
     while (1) {
       // unsigned long long current_tick = lapic_get_ticks();
 
@@ -288,10 +291,8 @@ EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
       //   last_tick = current_tick;
       // }
 
-      c = keyboard_getchar();
-      if (c != '\0') {
-        console_putc(&con, c);
-      }
+      // シェルのキー入力受け取りと描画処理
+      shell_update(&shell);
 
       // 次の割り込みが入るまで CPU を休憩させて省電力化
       __asm__ volatile("hlt");

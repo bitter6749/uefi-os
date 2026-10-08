@@ -1,1 +1,0 @@
-x86_64-w64-mingw32-gcc -Wall -Wextra -O2 -ffreestanding -fno-stack-protector -fno-stack-check -mno-red-zone -nostdlib -Iinclude -Iinclude/memmap -Iinclude/drivers -Iinclude/arch -Iinclude/shell -Isrc -c src/memmap/heap.c -o build/memmap/heap.o

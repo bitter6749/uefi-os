@@ -136,3 +136,35 @@ void console_put_dec(Console *con, unsigned long long val) {
     console_putc(con, buf[i]);
   }
 }
+
+// ============================================================================
+// console_clear: コンソール画面全体をクリアし、カーソルを初期位置 (0, 0) に戻す
+// ============================================================================
+void console_clear(Console *con) {
+  if (con == 0 || con->fb == 0) {
+    return;
+  }
+
+  // 画面全体を背景色で塗りつぶす
+  draw_rect(con->fb, 0, 0, con->fb->width, con->fb->height, con->bg_color);
+
+  // カーソル一を原点にリセット
+  con->cursor_x = 0;
+  con->cursor_y = 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
