@@ -4,6 +4,7 @@
 #include "drivers/console.h"
 
 #define SHELL_MAX_LINE  128   // 1行あたりの最大入力文字数
+#define SHELL_MAX_ARGS  8     // 最大引数トークン数 (argc の上限)
 #define SHELL_PROMPT    "> "  // プロンプト表示
 
 typedef struct KernelShell KernelShell;
@@ -12,8 +13,9 @@ typedef struct KernelShell KernelShell;
 // CommandHandler: 各コマンド処理関数の型定義 (関数ポインタ)
 // ============================================================================
 // - 引数1 (shell):   KernelShell 構造体へのポインタ
-// - 引数2 (args):    コマンド引数文字列 (未指定時は空文字 "")
-typedef void (*CommandHandler)(KernelShell *shell, const char *args);
+// - 引数2 (argc):    トークン (コマンド+引数) の総数
+// - 引数3 (argv):    トークン文字列配列へのポンタ
+typedef void (*CommandHandler)(KernelShell *shell, int argc, char **argv);
 
 // ============================================================================
 // ShellCommand: コマンド名とハンドラ関数を対にする構造体

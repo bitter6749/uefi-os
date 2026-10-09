@@ -2,9 +2,9 @@
 #include "drivers/keyboard.h"
 #include "drivers/console.h"
 
-static void cmd_help(KernelShell *shell, const char *args);
-static void cmd_clear(KernelShell *shell, const char *args);
-static void cmd_echo(KernelShell *shell, const char *args);
+static void cmd_help(KernelShell *shell, int argc, char **argv);
+static void cmd_clear(KernelShell *shell, int argc, char **argv);
+static void cmd_echo(KernelShell *shell, int argc, char **argv);
 
 // ============================================================================
 // g_shell_commands: 登録済みシェルコマンドの定義テーブル
@@ -30,8 +30,9 @@ static int k_strcmp(const char *s1, const char *s2) {
 // ============================================================================
 // cmd_help: 利用可能なコマンド一覧を表示する
 // ============================================================================
-static void cmd_help(KernelShell *shell, const char *args) {
-  (void)args;
+static void cmd_help(KernelShell *shell, int argc, char **argv) {
+  (void)argc;
+  (void)argv;
   console_puts(shell->con, "Availabe commands:\n");
   for (unsigned int i = 0; i < COMMAND_COUNT; i++) {
     console_puts(shell->con, "  ");
@@ -45,16 +46,22 @@ static void cmd_help(KernelShell *shell, const char *args) {
 // ============================================================================
 // cmd_clear: コンソール画面を消去する
 // ============================================================================
-static void cmd_clear(KernelShell *shell, const char *args) {
-  (void)args;
+static void cmd_clear(KernelShell *shell, int argc, char **argv) {
+  (void)argc;
+  (void)argv;
   console_clear(shell->con);
 }
 
 // ============================================================================
 // cmd_echo: 入力された文字列をそのまま表示する
 // ============================================================================
-static void cmd_echo(KernelShell *shell, const char *args) {
-  console_puts(shell->con, args);
+static void cmd_echo(KernelShell *shell, int argc, char **argv) {
+  for (int i = 1; i < argc; i++) {
+    console_puts(shell->con, argv[i]);
+    if (i < argc - 1) {
+      console_puts(shell->con, " ");
+    }
+  }
   console_puts(shell->con, "\n");
 }
 
@@ -71,26 +78,59 @@ static void shell_execute_command(KernelShell *shell) {
     return;
   }
 
-  // 今後コマンドと引数を分離 (例: "echo hello" -> cmd: "echo", args: "hello") する拡張も用意
-  const char *cmd_name  = shell->line_buf;
-  const char *args      = "";
+  // 1. コマンドと引数を分離
+  int argc = 0;
+  char *argv[SHELL_MAX_ARGS];
+  char *p = shell->line_buf;
 
-  // テーブル内をルックアップ
+  while (*p != '\0') {
+    // 空白文字をスキップ
+    while (*p == ' ') {
+      *p = '\0';  // スペースをヌル終端に置換
+      p++;
+    }
+
+    if (*p == '\0') {
+      break;
+    }
+
+    // トークンの先頭ポインタを argv に保存
+    if (argc < SHELL_MAX_ARGS) {
+      argv[argc++] = p;
+    }
+
+    // 次の空白または末尾まで進める
+    while (*p != '\0' && *p != ' ') {
+      p++;
+    }
+  }
+
+  // トークンが存在しない場合 (スペースのみの入力)
+  if (argc == 0) {
+    shell->line_len = 0;
+    shell->line_buf[0] = '\0';
+    shell_print_prompt(shell);
+    return;
+  }
+
+  // 2. argv[0] (コマンド名) をテーブルから検索して実行
   int found = 0;
   for (unsigned int i = 0; i < COMMAND_COUNT; i++) {
-    if (k_strcmp(cmd_name, g_shell_commands[i].name) == 0) {
-      g_shell_commands[i].handler(shell, args);
+    if (k_strcmp(argv[0], g_shell_commands[i].name) == 0) {
+      g_shell_commands[i].handler(shell, argc, argv);
       found = 1;
       break;
     }
   }
 
+  // コマンドが見つからなかった時の処理
   if (!found) {
     console_puts(shell->con, "Command not found: ");
-    console_puts(shell->con, cmd_name);
+    console_puts(shell->con, argv[0]);
     console_puts(shell->con, "\n");
   }
 
+  // バッファのリセット
   shell->line_len = 0;
   shell->line_buf[0] = '\0';
   shell_print_prompt(shell);
