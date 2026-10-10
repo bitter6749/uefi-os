@@ -5,6 +5,7 @@ DEFINE_COMMAND(help);
 DEFINE_COMMAND(clear);
 DEFINE_COMMAND(echo);
 DEFINE_COMMAND(ticks);
+DEFINE_COMMAND(exit);
 
 // 一覧テーブル
 const ShellCommand g_shell_commands[] = {
@@ -12,6 +13,7 @@ const ShellCommand g_shell_commands[] = {
   {"clear", cmd_clear,  "Clear the console screen"},
   {"echo",  cmd_echo,   "Display a line of text"},
   {"ticks", cmd_ticks,  "Display CPU/Timer tick count"},
+  {"exit",  cmd_exit,   "Shutdown the sysmte"},
 };
 
 const unsigned int g_shell_commands_count = 

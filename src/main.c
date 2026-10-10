@@ -13,6 +13,7 @@
 
 // メモリマップ格納用の静的バッファ (4096 * 4 バイト = 16KB)
 static unsigned char memory_map_buffer[4096 * 4];
+EFI_RUNTIME_SERVICES *g_runtime_services = 0;
 
 // ============================================================================
 // get_memory_map: UEFI からメモリマップを取得する
@@ -97,6 +98,8 @@ void print_memory_map(Console *con, MemoryMap *map) {
 // - 戻り値: EFI_STATUS (0 = EFI_SUCCESS)
 EFI_STATUS efi_main(EFI_HANDLE image_handle, EFI_SYSTEM_TABLE *system_table) {
   (void)image_handle; // 未使用引数の警告を防ぐ
+
+  g_runtime_services = (EFI_RUNTIME_SERVICES *)system_table->RuntimeServices;
 
   // --------------------------------------------------------------------------
   // 1. GOP (Graphics Output Protocol) の取得準備

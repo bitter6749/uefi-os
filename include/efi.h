@@ -106,6 +106,38 @@ typedef struct {
   EFI_STATUS (*LocateProtocol)(EFI_GUID *Protocol, void *Registration, void **Interface);
 } EFI_BOOT_SERVICES;
 
+// UEFI Reset Type
+typedef enum {
+  EfiResetCold = 0,
+  EfiResetWarm  = 1,
+  EfiResetShutdown = 2,
+  EfiResetPlatformSpecific = 3,
+} EFI_RESET_TYPE;
+
+// ResetSystem の関数ポインタ型
+typedef void (*EFI_RESET_SYSTEM) (
+  EFI_RESET_TYPE ResetType,
+  EFI_STATUS ResetStatus,
+  unsigned long long DataSize,
+  void *ResetData
+);
+
+// Runtime Services 構造体の最小限の定義
+typedef struct {
+  EFI_TABLE_HEADER Header;
+  void *GetTime;
+  void *SetTime;
+  void *GetWakeupTime;
+  void *SetWakeupTime;
+  void *SetVirtualAddressMap;
+  void *ConvertPointer;
+  void *GetVariable;
+  void *GetNextVariableName;
+  void *SetVariable;
+  void *GetNextHighMonotonicCount;
+  EFI_RESET_SYSTEM ResetSystem; // シャットダウン関数
+} EFI_RUNTIME_SERVICES;
+
 // System Table
 typedef struct {
   EFI_TABLE_HEADER Hdr;
