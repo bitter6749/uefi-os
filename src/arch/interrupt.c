@@ -1,4 +1,5 @@
 #include "arch/interrupt.h"
+#include "arch/lapic.h"
 #include "drivers/console.h"
 
 static Console *global_console = 0;
@@ -33,6 +34,12 @@ static const char *get_exception_name(unsigned long long vector) {
 // exception_handler: 例外発生時のカーネルパニック画面出力処理
 // ====================================================================================
 void exception_handler(InterruptFrame *frame) {
+  // 32 番以降は外部 IRQ。未割当の割り込みは EOI を送信して安全に復帰させる
+  if (frame->vector >= IRQ_VECTOR_START) {
+    lapic_eoi();
+    return;
+  }
+
   if (!global_console) {
     // コンソールが未登録の場合は無限ループ停止
     while (1) { __asm__ volatile("hlt"); }
