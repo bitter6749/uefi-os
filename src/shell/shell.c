@@ -1,21 +1,7 @@
 #include "shell/shell.h"
 #include "drivers/keyboard.h"
 #include "drivers/console.h"
-
-static void cmd_help(KernelShell *shell, int argc, char **argv);
-static void cmd_clear(KernelShell *shell, int argc, char **argv);
-static void cmd_echo(KernelShell *shell, int argc, char **argv);
-
-// ============================================================================
-// g_shell_commands: 登録済みシェルコマンドの定義テーブル
-// ============================================================================
-static const ShellCommand g_shell_commands[] = {
-  {"help",  cmd_help,   "Display availabel commands"},
-  {"clear", cmd_clear,  "Clear the console screen"},
-  {"echo",  cmd_echo,   "Display a line of text"},
-};
-
-#define COMMAND_COUNT (sizeof(g_shell_commands) / sizeof(g_shell_commands[0]))
+#include "shell/command.h"
 
 // 簡易的な文字列比較関数 
 static int k_strcmp(const char *s1, const char *s2) {
@@ -26,45 +12,6 @@ static int k_strcmp(const char *s1, const char *s2) {
 
   return *(unsigned char *)s1 - *(unsigned char *)s2;
 }
-
-// ============================================================================
-// cmd_help: 利用可能なコマンド一覧を表示する
-// ============================================================================
-static void cmd_help(KernelShell *shell, int argc, char **argv) {
-  (void)argc;
-  (void)argv;
-  console_puts(shell->con, "Availabe commands:\n");
-  for (unsigned int i = 0; i < COMMAND_COUNT; i++) {
-    console_puts(shell->con, "  ");
-    console_puts(shell->con, g_shell_commands[i].name);
-    console_puts(shell->con, " - ");
-    console_puts(shell->con, g_shell_commands[i].description);
-    console_puts(shell->con, "\n");
-  }
-}
-
-// ============================================================================
-// cmd_clear: コンソール画面を消去する
-// ============================================================================
-static void cmd_clear(KernelShell *shell, int argc, char **argv) {
-  (void)argc;
-  (void)argv;
-  console_clear(shell->con);
-}
-
-// ============================================================================
-// cmd_echo: 入力された文字列をそのまま表示する
-// ============================================================================
-static void cmd_echo(KernelShell *shell, int argc, char **argv) {
-  for (int i = 1; i < argc; i++) {
-    console_puts(shell->con, argv[i]);
-    if (i < argc - 1) {
-      console_puts(shell->con, " ");
-    }
-  }
-  console_puts(shell->con, "\n");
-}
-
 static void shell_print_prompt(KernelShell *shell) {
   console_puts(shell->con, SHELL_PROMPT);
 }
@@ -115,7 +62,7 @@ static void shell_execute_command(KernelShell *shell) {
 
   // 2. argv[0] (コマンド名) をテーブルから検索して実行
   int found = 0;
-  for (unsigned int i = 0; i < COMMAND_COUNT; i++) {
+  for (unsigned int i = 0; i < g_shell_commands_count; i++) {
     if (k_strcmp(argv[0], g_shell_commands[i].name) == 0) {
       g_shell_commands[i].handler(shell, argc, argv);
       found = 1;
