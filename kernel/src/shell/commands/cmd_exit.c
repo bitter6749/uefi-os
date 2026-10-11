@@ -1,4 +1,4 @@
-#include "efi.h"
+#include "type.h"
 #include "shell/command.h"
 #include "drivers/console.h"
 

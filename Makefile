@@ -21,8 +21,6 @@ DD          := dd
 CFLAGS      := -Wall -Wextra -O2 -ffreestanding -fno-stack-protector \
                -fno-stack-check -mno-red-zone -nostdlib
 
-# または find で include は以下の全ディレクトリを自動取得する場合
-INCDIRS := $(shell find include -type d)
 CFLAGS += $(addprefix -I, $(INCDIRS)) -Isrc
 
 ASMFLAGS    := -f win64
@@ -37,44 +35,47 @@ OVMF        ?= $(firstword $(wildcard \
                  /usr/share/edk2-ovmf/x64/OVMF.fd))
 
 # Directories & Targets
-SRC_DIR     := src
 BUILD_DIR   := build
-
 TARGET_EFI  := $(BUILD_DIR)/BOOTX64.EFI
 TARGET_IMG  := $(BUILD_DIR)/disk.img
+
+# --- Bootloader Settings ---
+BOOT_SRC    := bootloader/src
+BOOT_INC    := -Ibootloader/include -Ishared/include
+BOOT_CSRCS  := $(shell find $(BOOT_SRC) -name "*.c")
+BOOT_OBJS   := $(patsubst $(BOOT_SRC)/%.c,$(BUILD_DIR)/bootloader/%.o,$(BOOT_CSRCS))
+
+# --- Kernel Settings ---
+KERN_SRC    := kernel/src
+KERN_INC    := $(addprefix -I, $(shell find kernel/include -type d)) -Ishared/include
+KERN_CSRCS  := $(shell find $(KERN_SRC) -name "*.c")
+KERN_SSRCS  := $(shell find $(KERN_SRC) -name "*.S")
+KERN_COBJS  := $(patsubst $(KERN_SRC)/%.c,$(BUILD_DIR)/kernel/%.o,$(KERN_CSRCS))
+KERN_SOBJS  := $(patsubst $(KERN_SRC)/%.S,$(BUILD_DIR)/kernel/%_S.o,$(KERN_SSRCS))
 
 # Font Binary Asset
 FONT_BIN    := assets/font.bin
 FONT_OBJ    := $(BUILD_DIR)/font_bin.o
 
-# Source files (all .c, .asm, and .S files under src/)
-C_SRCS      := $(shell find $(SRC_DIR) -name "*.c")
-NASM_SRCS   := $(shell find $(SRC_DIR) -name "*.asm")
-GAS_SRCS    := $(shell find $(SRC_DIR) -name "*.S")
-
-C_OBJS      := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(C_SRCS))
-NASM_OBJS   := $(patsubst $(SRC_DIR)/%.asm,$(BUILD_DIR)/%_asm.o,$(NASM_SRCS))
-GAS_OBJS    := $(patsubst $(SRC_DIR)/%.S,$(BUILD_DIR)/%_S.o,$(GAS_SRCS))
-ALL_OBJS    := $(C_OBJS) $(NASM_OBJS) $(GAS_OBJS) $(FONT_OBJ)
+ALL_OBJS		:= $(BOOT_OBJS) $(KERN_COBJS) $(KERN_SOBJS) $(FONT_OBJ)
 
 # Default Target
 .PHONY: all
 all: $(TARGET_IMG)
 
 # Compile C source files to object files
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+$(BUILD_DIR)/bootloader/%.o: $(BOOT_SRC)/%.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(BOOT_INC) -c $< -o $@
 
-# Assemble NASM source files to object files
-$(BUILD_DIR)/%_asm.o: $(SRC_DIR)/%.asm
+$(BUILD_DIR)/kernel/%.o: $(KERN_SRC)/%.c
 	@mkdir -p $(dir $@)
-	$(ASM) $(ASMFLAGS) $< -o $@
+	$(CC) $(CFLAGS) $(KERN_INC) -c $< -o $@
 
 # Assemble GAS source files (.S) to object files
-$(BUILD_DIR)/%_S.o: $(SRC_DIR)/%.S
+$(BUILD_DIR)/kernel/%_S.o: $(KERN_SRC)/%.S
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(KERN_INC) -c $< -o $@
 
 # Convert binary font into linkable PE-COFF object file
 $(FONT_OBJ): $(FONT_BIN)
@@ -85,7 +86,7 @@ $(FONT_OBJ): $(FONT_BIN)
 $(TARGET_EFI): $(ALL_OBJS)
 	@mkdir -p $(BUILD_DIR)
 	@if [ -z "$(ALL_OBJS)" ]; then \
-		echo "Error: No source files found in $(SRC_DIR)/ (.c or .asm)."; \
+		echo "Error: No source files found in $(KERN_SRC)/ (.c or .asm)."; \
 		exit 1; \
 	fi
 	$(LD) $(LDFLAGS) -o $@ $(ALL_OBJS)

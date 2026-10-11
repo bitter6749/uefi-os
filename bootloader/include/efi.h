@@ -106,38 +106,6 @@ typedef struct {
   EFI_STATUS (*LocateProtocol)(EFI_GUID *Protocol, void *Registration, void **Interface);
 } EFI_BOOT_SERVICES;
 
-// UEFI Reset Type
-typedef enum {
-  EfiResetCold = 0,
-  EfiResetWarm  = 1,
-  EfiResetShutdown = 2,
-  EfiResetPlatformSpecific = 3,
-} EFI_RESET_TYPE;
-
-// ResetSystem の関数ポインタ型
-typedef void (*EFI_RESET_SYSTEM) (
-  EFI_RESET_TYPE ResetType,
-  EFI_STATUS ResetStatus,
-  unsigned long long DataSize,
-  void *ResetData
-);
-
-// Runtime Services 構造体の最小限の定義
-typedef struct {
-  EFI_TABLE_HEADER Header;
-  void *GetTime;
-  void *SetTime;
-  void *GetWakeupTime;
-  void *SetWakeupTime;
-  void *SetVirtualAddressMap;
-  void *ConvertPointer;
-  void *GetVariable;
-  void *GetNextVariableName;
-  void *SetVariable;
-  void *GetNextHighMonotonicCount;
-  EFI_RESET_SYSTEM ResetSystem; // シャットダウン関数
-} EFI_RUNTIME_SERVICES;
-
 // System Table
 typedef struct {
   EFI_TABLE_HEADER Hdr;
@@ -152,53 +120,6 @@ typedef struct {
   void              *RuntimeServices;
   EFI_BOOT_SERVICES *BootServices; // ブートサービスへのポインタ
 } EFI_SYSTEM_TABLE;
-
-// =====================================================================
-// メモリ領域の種別 (EFI_MEMORY_TYPE)
-// =====================================================================
-typedef enum {
-  EfiReservedMemoryType,
-  EfiLoaderCode,
-  EfiLoaderData,
-  EfiBootServicesCode,
-  EfiBootServicesData,
-  EfiRuntimesServicesCode,
-  EfiRuntimeServicesData,
-  EfiConventionalMemory,  // 使用可能な空き物理メモリ領域
-  EfiUnsableMemory,
-  EfiACPIReclaimMemory,
-  EfiACPIMemoryNVS,
-  EfiMemoryMappedIO,
-  EfiMemoryMappedPortSpace,
-  EfiPalCode,
-  EfiPersistentMemory,
-  EfiMaxMemoryType,
-} EFI_MEMORY_TYPE;
-
-// =====================================================================
-// メモリ記述子構造体 (EFI_MEMORY_DESCRIPTOR)
-// =====================================================================
-// 各物理メモリ領域の先頭アドレス、ページ数、種別を保持する
-typedef struct {
-  unsigned int        Type;             // メモリ領域種別 (EFI_MEMORY_TYPE)
-  unsigned int        Pad;              // 8バイトのアライメント用のパッディング
-  unsigned long long  PhysicalStart;    // 領域の先頭物理アドレス
-  unsigned long long  VirtualStart;     // 領域の先頭仮想アドレス
-  unsigned long long  NumberOfPages;    // ページ数 (1ページ = 4KB = 4096バイト)
-  unsigned long long  Attribute;        // メモリ属性フラグ
-} EFI_MEMORY_DESCRIPTOR;
-
-// =====================================================================
-// カーネル側で保持するメモリマップ情報構造体
-// =====================================================================
-typedef struct {
-  unsigned long long  buffer_size;          // バッファ全体のバイトサイズ
-  void                *buffer;              // メモリ記述子配列へのポインタ
-  unsigned long long  map_size;             // 実際に取得されたメモリマップのバイトサイズ
-  unsigned long long  map_key;              // ExitBootServices で必要な識別キー
-  unsigned long long  descriptor_size;      // 1つの記述子のバイトサイズ
-  unsigned int        descriptor_version;   // 記述子のバージョン
-} MemoryMap;
 
 #endif
 

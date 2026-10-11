@@ -1,5 +1,5 @@
 #include "memmap/memory.h"
-#include "efi.h"
+#include "type.h"
 
 // ビットマップ操作ヘルパー関数 (静的関数)
 
@@ -60,7 +60,7 @@ static inline int bitmap_get(const unsigned char *bitmap, unsigned long long pag
 // ====================================================================================
 // get_max_physical_address: 全物理RAMおよびVRAMを含めた最大物理アドレスを求める
 // ====================================================================================
-unsigned long long get_max_physical_address(MemoryMap *map, FrameBuffer *fb) {
+unsigned long long get_max_physical_address(BootMemoryMap *map, FrameBuffer *fb) {
   // --- 64-bit ページテーブルの作成とCR3登録 ---
   unsigned long long max_ram_addr = 0;
   unsigned long long offset        = 0;
@@ -86,7 +86,7 @@ unsigned long long get_max_physical_address(MemoryMap *map, FrameBuffer *fb) {
 // ====================================================================================
 // frame_allocator_init: メモリマップをもとにフレームアロケータを初期化する
 // ====================================================================================
-void frame_allocator_init(BitmapFrameAllocator *allocator, MemoryMap *map) {
+void frame_allocator_init(BitmapFrameAllocator *allocator, BootMemoryMap *map) {
   unsigned long long max_phys_addr = 0;
 
   // 1. 全物理アドレスの最大物理アドレスを計算し、総ページ数を求める

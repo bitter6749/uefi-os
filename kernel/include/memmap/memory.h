@@ -1,7 +1,7 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
-#include "efi.h"
+#include "bootinfo.h"
 #include "drivers/graphics.h"
 
 // ====================================================================================
@@ -30,14 +30,14 @@ typedef struct {
 // - 引数1 (map):         MemoryMap 構造体へのポインタ
 // - 引数2 (fb):          FrameBuffer 構造体へのポインタ
 // - 戻り値:              計算された最大物理アドレス (バイト単位)
-unsigned long long get_max_physical_address(MemoryMap *map, FrameBuffer *fb);
+unsigned long long get_max_physical_address(BootMemoryMap *map, FrameBuffer *fb);
 
 // ====================================================================================
 // frame_allocator_init: メモリマップをもとにフレームアロケータを初期化する
 // ====================================================================================
 // - 引数1 (allocator):   初期化対象ノアロケータ構造体へのポインタ
 // - 引数2 (map):         取得済みの MemoryMap 構造体へのポインタ
-void frame_allocator_init(BitmapFrameAllocator *allocator, MemoryMap *map);
+void frame_allocator_init(BitmapFrameAllocator *allocator, BootMemoryMap *map);
 
 // ====================================================================================
 // alloc_frame: 1 ページ (4KB) の物理メモリを割り当てる
