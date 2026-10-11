@@ -121,5 +121,18 @@ typedef struct {
   EFI_BOOT_SERVICES *BootServices; // ブートサービスへのポインタ
 } EFI_SYSTEM_TABLE;
 
+// =====================================================================
+// メモリ記述子構造体 (EFI_MEMORY_DESCRIPTOR)
+// =====================================================================
+// 各物理メモリ領域の先頭アドレス、ページ数、種別を保持する
+typedef struct {
+  unsigned int        Type;             // メモリ領域種別 (EFI_MEMORY_TYPE)
+  unsigned int        Pad;              // 8バイトのアライメント用のパッディング
+  unsigned long long  PhysicalStart;    // 領域の先頭物理アドレス
+  unsigned long long  VirtualStart;     // 領域の先頭仮想アドレス
+  unsigned long long  NumberOfPages;    // ページ数 (1ページ = 4KB = 4096バイト)
+  unsigned long long  Attribute;        // メモリ属性フラグ
+} EFI_MEMORY_DESCRIPTOR;
+
 #endif
 
