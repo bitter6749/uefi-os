@@ -19,14 +19,24 @@ void console_init(Console *con, FrameBuffer *fb, unsigned int fg_color, unsigned
 void console_scroll(Console *con) {
   FrameBuffer *fb = con->fb;
 
-  for (unsigned int y = FONT_HEIGHT; y < fb->height; y++) {
-    for (unsigned int x = 0; x < fb->width; x++) {
-      fb->base[(y - FONT_HEIGHT) * fb->ppsl + x] = fb->base[y * fb->ppsl + x];
+  unsigned int copy_height  = fb->height - FONT_HEIGHT;
+  unsigned int ppsl         = fb->ppsl;
+  unsigned int width        = fb->width;
+
+  unsigned int *buf = fb->back_buffer ? fb->back_buffer : fb->vram;
+
+  for (unsigned int y = 0; y < copy_height; y++) {
+    unsigned int *dst = &buf[y * ppsl];
+    unsigned int *src = &buf[(y + FONT_HEIGHT) * ppsl];
+    for (unsigned int x = 0; x < width; x++) {
+      dst[x] = src[x];
     }
   }
 
   // 最下部に空いた高さ 16px の領域を背景色で塗りつぶす
   draw_rect(fb, 0, fb->height - FONT_HEIGHT, fb->width, FONT_HEIGHT, con->bg_color);
+
+  grapchics_flush(fb);
 }
 
 // =========================================================================
@@ -50,6 +60,8 @@ void console_putc(Console *con, char c) {
 
     // カーソル位置の 1 文字分を背景色で塗りつぶして消去
     draw_rect(con->fb, con->cursor_x, con->cursor_y, FONT_WIDTH, FONT_HEIGHT, con->bg_color);
+
+    grapchics_flush_rect(con->fb, con->cursor_x, con->cursor_y, FONT_WIDTH, FONT_HEIGHT);
     return;
   }
 
@@ -64,6 +76,8 @@ void console_putc(Console *con, char c) {
     if (con->cursor_y + FONT_HEIGHT > con->fb->height) {
       console_scroll(con);
       con->cursor_y = con->fb->height - FONT_HEIGHT; // 最下行にカーソルを固定
+    } else {
+      grapchics_flush(con->fb);
     }
     return;
   }
@@ -72,6 +86,7 @@ void console_putc(Console *con, char c) {
   // 3. 通常文字の描画
   // -----------------------------------------------------------------------
   draw_char(con->fb, con->cursor_x, con->cursor_y, c, con->fg_color);
+  grapchics_flush_rect(con->fb, con->cursor_x, con->cursor_y, FONT_WIDTH, FONT_HEIGHT);
   con->cursor_x += FONT_WIDTH;       // 次の文字位置へ (横8ドット進める)
 
   // 右端に達したら自動折返し
@@ -95,6 +110,8 @@ void console_puts(Console *con, const char *str) {
     console_putc(con, *str);
     str++;
   }
+
+  grapchics_flush(con->fb);
 }
 
 // =========================================================================

@@ -77,7 +77,7 @@ unsigned long long get_max_physical_address(BootMemoryMap *map, FrameBuffer *fb)
   }
 
   // VRAM (フレームバッファ) の領域もマッピング領域に含める
-  unsigned long long vram_end = (unsigned long long)fb->base + (fb->ppsl * fb->height * 4);
+  unsigned long long vram_end = (unsigned long long)fb->vram + (fb->ppsl * fb->height * 4);
 
   // 高い方の物理アドレスを返す
   return (vram_end > max_ram_addr) ? vram_end : max_ram_addr;

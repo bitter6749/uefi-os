@@ -1,4 +1,5 @@
 #include "bootinfo.h"
+#include "memory.h"
 #include "type.h"
 #include "drivers/graphics.h"
 #include "drivers/console.h"
@@ -67,22 +68,22 @@ void kernel_main(BootInfo *boot_info) {
   // FrameBufferBase: ディスプレイに直結しているビデオメモリ(VRAM)の先頭物理アドレス。
   // 1ピクセルは 32bit (4バイト: 通常は 0x00RRGGBB) なので unsigned int* として扱う。
   FrameBuffer fb = {
-    .base = boot_info->fb.base,
+    .vram = (unsigned int *)boot_info->fb.base,
     .width = boot_info->fb.width, // 画面の横幅(px)
     .height = boot_info->fb.height,  // 画面の縦幅(px)
     // --- PixelPerScanLine ---
     // ディスプレイの伝送効率やハードウェアの境界合わせのため、画面右端に「目に見えない余白」
     // が含まれることがある。そのため、1行進める計算には width ではなく ppsl を必ず使う。
-    .ppsl = boot_info->fb.ppsl
+    .ppsl = boot_info->fb.ppsl,
+    .back_buffer = 0
   };
 
-  // 背景をネイビーブルーでクリア
-  clear_screen(&fb, 0x001E3F);
+  unsigned long long fb_bytes = (unsigned long long)fb.ppsl * fb.height * sizeof(unsigned int);
+  unsigned long long needed_pages = (fb_bytes + PAGE_SIZE - 1) / PAGE_SIZE;
 
   // 4. コンソールの初期化 (文字色: 白 0xFFFFFF, 背景色: ネイビー 0x001E3F)
   Console con;
   console_init(&con, &fb, 0xFFFFFF, 0x001E3F);
-  console_puts(&con, "Kernel Started successfully!\n");
 
   BootMemoryMap map = {
     .buffer_size        = boot_info->map.buffer_size,
@@ -92,16 +93,32 @@ void kernel_main(BootInfo *boot_info) {
     .descriptor_size    = boot_info->map.descriptor_size,
     .descriptor_version = boot_info->map.descriptor_version
   };
-  print_memory_map(&con, &map);
 
   // --- 物理フレームアロケータの初期化 ---
   BitmapFrameAllocator allocator;
   frame_allocator_init(&allocator, &map);
+
+  fb.back_buffer = (unsigned int *)alloc_frames(&allocator, needed_pages);
+  // 背景をネイビーブルーでクリア
+  clear_screen(&fb, 0x001E3F);
+  console_puts(&con, "Kernel Started successfully!\n");
+  console_puts(&con, "back_buffer: ");
+  console_put_hex(&con, (unsigned long long)fb.back_buffer, 16);
+  console_puts(&con, "\n");
+
+  print_memory_map(&con, &map);
+
   console_puts(&con, "Total Pages: ");
   console_put_dec(&con, allocator.total_pages);
   console_puts(&con, " Free Pages: ");
   console_put_dec(&con, allocator.free_pages);
   console_puts(&con, "\n");
+
+  if (fb.back_buffer) {
+    console_puts(&con, "Back Buffer allocated successfully!\n");
+  } else {
+    console_puts(&con, "Failed to allocate Back Buffer.\n");
+  }
 
   // --- ヒープアロケータの初期化 (16ページ = 64KB を確保) ---
   HeapAllocator heap;
@@ -160,6 +177,7 @@ void kernel_main(BootInfo *boot_info) {
 
   KernelShell shell;
   shell_init(&shell, &con);
+
   while (1) {
     // unsigned long long current_tick = lapic_get_ticks();
 
@@ -173,7 +191,6 @@ void kernel_main(BootInfo *boot_info) {
 
     // シェルのキー入力受け取りと描画処理
     shell_update(&shell);
-
     // 次の割り込みが入るまで CPU を休憩させて省電力化
     __asm__ volatile("hlt");
   }  

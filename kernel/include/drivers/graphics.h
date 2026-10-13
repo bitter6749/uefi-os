@@ -3,10 +3,11 @@
 
 // 画面 (フレームバッファ) の情報
 typedef struct {
-  unsigned int *base;   // VRAM の先頭アドレス
-  unsigned int width;   // 画面の横幅 (px)
-  unsigned int height;  // 画面の縦幅 (px)
-  unsigned int ppsl;    // 1行あたりのピクセル数
+  unsigned int *vram;         // VRAM の先頭アドレス
+  unsigned int *back_buffer;  // 描画バッファ
+  unsigned int width;         // 画面の横幅 (px)
+  unsigned int height;        // 画面の縦幅 (px)
+  unsigned int ppsl;          // 1行あたりのピクセル数
 } FrameBuffer;
 
 // ============================================================================
@@ -36,4 +37,19 @@ void draw_rect(FrameBuffer *fb, unsigned int x, unsigned int y, unsigned int w, 
 // - 引数2 (color):   画面全体の背景色 (32-bit RGB: 0x00RRGGBB)
 void clear_screen(FrameBuffer *fb, unsigned int color);
 
+// ============================================================================
+// grapchics_flush: RAM バッファの内容を VRAM へ一括反映 (転送) する
+// ============================================================================
+// - 引数1 (fb):      描画対象のフレームバッファ情報へのポインタ
+void grapchics_flush(FrameBuffer *fb);
+
+// ============================================================================
+// grapchics_flush_rect: 指定範囲内のRAM バッファの内容を VRAM へ一括反映 (転送) する
+// ============================================================================
+// - 引数1 (fb):      描画対象のフレームバッファ情報へのポインタ
+// - 引数2 (x):       矩形の左上端の X 座標
+// - 引数3 (y):       矩形の左上端の Y 座標
+// - 引数4 (w):       矩形の横幅 (ピクセル)
+// - 引数5 (h):       矩形の縦幅 (ピクセル)
+void grapchics_flush_rect(FrameBuffer *fb, unsigned int x, unsigned int y, unsigned int w, unsigned int h);
 #endif
