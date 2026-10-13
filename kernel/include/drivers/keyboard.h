@@ -28,9 +28,20 @@
 #define SCANCODE_PREFIX_E0      0xE0  // 2バイト拡張キーのプレフィックス
 #define SCANCODE_TABLE_MAX      0x40  // 変換テーブル有効範囲 (0x00 ~ 0x3F)
 
+#define SCANCODE_UP             0x48
+#define SCANCODE_DOWN           0x50
+
+// --- 特殊キーコード (ASCII 外のキー識別用) ---
+#define KEY_UP      0x80
+#define KEY_DOWN    0x81
+#define KEY_LEFT    0x82
+#define KEY_RIGHT   0x83
+
 // --- キー状態値 ---
 #define SHIFT_RELLEASED         0
 #define SHIFT_PRESSED           1
+#define E0_RELEASED             0
+#define E0_PRESSED              1
 
 // ====================================================================================
 // キーボード・リングバッファ構造体

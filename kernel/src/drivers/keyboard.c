@@ -3,7 +3,8 @@
 #include "arch/lapic.h"
 
 static KeyBuffer g_key_buffer;
-static volatile int g_shift_pressed = SHIFT_RELLEASED; // shift キー押下状態フラグ
+static volatile int g_shift_pressed = SHIFT_RELLEASED;  // shift キー押下状態フラグ
+static volatile int g_e0_prefix     = 0;                // E0 プレフィックス状態フラグ
 
 // --- Scan Code Set 1 -> ASCII 変換テーブル ---
 // 通常時 (0x00 ~ 0x39)
@@ -31,6 +32,11 @@ void keyboard_init(void) {
   g_key_buffer.head = 0;
   g_key_buffer.tail = 0;
   g_shift_pressed   = SHIFT_RELLEASED;
+  g_e0_prefix       = 0;
+
+  while (inb(KBD_STATUS_PORT) & KBD_STATUS_OBF) {
+    inb(KBD_DATA_PORT);
+  }
 }
 
 // バッファに 1 バイト増加 (割り込みハンドラ内から呼び出し)
@@ -87,8 +93,27 @@ void c_keyboard_handler(void) {
 // scancode_to_ascii: スキャンコードを ASCII 文字へ変換する
 // ====================================================================================
 char scancode_to_ascii(unsigned char scancode) {
+  // 0xE0 プレフィックスの受信処理
+  if (scancode == SCANCODE_PREFIX_E0) {
+    g_e0_prefix = E0_PRESSED;
+    return 0;
+  }
+
+  if (g_e0_prefix) {
+    g_e0_prefix = E0_RELEASED; // フラグリセット
+
+    // Breakコード(キー離下)は無視
+    if (scancode & SCANCODE_BREAK_BIT) {
+      return 0;
+    }
+
+    if (scancode == SCANCODE_UP)    return (char)KEY_UP;
+    if (scancode == SCANCODE_DOWN)  return (char)KEY_DOWN;
+    return 0;
+  }
+
   // Break コード (キーを離したとき) は無視する (Bit 7 が 1)
-  if ((scancode & SCANCODE_BREAK_BIT) || scancode == SCANCODE_PREFIX_E0 ) {
+  if (scancode & SCANCODE_BREAK_BIT) {
     return 0;
   }
 

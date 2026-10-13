@@ -36,7 +36,7 @@ void console_scroll(Console *con) {
   // 最下部に空いた高さ 16px の領域を背景色で塗りつぶす
   draw_rect(fb, 0, fb->height - FONT_HEIGHT, fb->width, FONT_HEIGHT, con->bg_color);
 
-  grapchics_flush(fb);
+  graphics_flush(fb);
 }
 
 // =========================================================================
@@ -61,7 +61,7 @@ void console_putc(Console *con, char c) {
     // カーソル位置の 1 文字分を背景色で塗りつぶして消去
     draw_rect(con->fb, con->cursor_x, con->cursor_y, FONT_WIDTH, FONT_HEIGHT, con->bg_color);
 
-    grapchics_flush_rect(con->fb, con->cursor_x, con->cursor_y, FONT_WIDTH, FONT_HEIGHT);
+    graphics_flush_rect(con->fb, con->cursor_x, con->cursor_y, FONT_WIDTH, FONT_HEIGHT);
     return;
   }
 
@@ -77,7 +77,7 @@ void console_putc(Console *con, char c) {
       console_scroll(con);
       con->cursor_y = con->fb->height - FONT_HEIGHT; // 最下行にカーソルを固定
     } else {
-      grapchics_flush(con->fb);
+      graphics_flush(con->fb);
     }
     return;
   }
@@ -86,7 +86,7 @@ void console_putc(Console *con, char c) {
   // 3. 通常文字の描画
   // -----------------------------------------------------------------------
   draw_char(con->fb, con->cursor_x, con->cursor_y, c, con->fg_color);
-  grapchics_flush_rect(con->fb, con->cursor_x, con->cursor_y, FONT_WIDTH, FONT_HEIGHT);
+  graphics_flush_rect(con->fb, con->cursor_x, con->cursor_y, FONT_WIDTH, FONT_HEIGHT);
   con->cursor_x += FONT_WIDTH;       // 次の文字位置へ (横8ドット進める)
 
   // 右端に達したら自動折返し
@@ -111,7 +111,7 @@ void console_puts(Console *con, const char *str) {
     str++;
   }
 
-  grapchics_flush(con->fb);
+  graphics_flush(con->fb);
 }
 
 // =========================================================================
@@ -168,6 +168,8 @@ void console_clear(Console *con) {
   // カーソル一を原点にリセット
   con->cursor_x = 0;
   con->cursor_y = 0;
+
+  graphics_flush(con->fb);  
 }
 
 

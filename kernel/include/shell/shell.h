@@ -7,6 +7,9 @@
 #define SHELL_MAX_ARGS  8     // 最大引数トークン数 (argc の上限)
 #define SHELL_PROMPT    "> "  // プロンプト表示
 
+#define HISTORY_MAX     10    // 保持する過去コマンドの最大数
+#define COMMAND_MAX_LEN 256   // コマンドの最大文字数
+
 typedef struct KernelShell KernelShell;
 
 // ============================================================================
@@ -30,6 +33,13 @@ typedef struct KernelShell{
   Console *con;                   // 描画先コンソールへの参照
   char line_buf[SHELL_MAX_LINE];  // 現在入力中の文字列バッファ
   int line_len;                   // バッファ内の現在の文字数
+
+  // --- コマンド履歴用 ---
+  char    history[HISTORY_MAX][COMMAND_MAX_LEN];  // 履歴保存用配列
+  int     history_count;                          // 保存されている履歴のインデックス (HISTORY_MAX)
+  int     history_head;                           // 次に書き込む履歴のインデックス
+  int     history_index;                          // 現在参照している履歴の位置 (-1 は新規入力中)
+  char    temp_buf[COMMAND_MAX_LEN];              // 履歴を参照する直前の入力途中の文字を一時退避するバッファ
 } KernelShell;
 
 // ============================================================================
