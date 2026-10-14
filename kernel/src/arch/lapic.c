@@ -88,9 +88,6 @@ void lapic_timer_init(void) {
   // 4. カウント初期値の設定 (値を書き込んだ瞬間にカウントダウンが始動)
   //    環境やクロック速度に合わせて数値を調整する
   lapic_write(LAPIC_REG_TIMER_INIT, LAPIC_TIMER_INIT_COUNT);
-
-  // 5. CPU の割り込み受信を許可 (sti 命令)
-  __asm__ volatile("sti");
 }
 
 

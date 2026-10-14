@@ -2,15 +2,37 @@
 #include "drivers/font.h"
 #include "drivers/graphics.h"
 
+// 8バイト (64bit)単位で一括転送する関数
+static inline void fast_copy_64(void *dst, const void *src, unsigned long long qwords) {
+  __asm__ volatile (
+      "rep movsq"
+      : "+D"(dst), "+S"(src), "+c"(qwords)
+      :
+      : "memory"
+  );
+}
+
+
 // =========================================================================
 // console_init: コンソールを初期化する
 // =========================================================================
 void console_init(Console *con, FrameBuffer *fb, unsigned int fg_color, unsigned int bg_color) {
-  con->fb       = fb;
-  con->cursor_x = 0;
-  con->cursor_y = 0;
-  con->fg_color = fg_color;
-  con->bg_color = bg_color;
+  con->fb         = fb;
+  con->cursor_x   = 0;
+  con->cursor_y   = 0;
+  con->fg_color   = fg_color;
+  con->bg_color   = bg_color;
+  con->need_flush = 0;
+}
+
+// =========================================================================
+// console_flush: 保留中の画面全体フラッシュ (スクロール等) を実行する
+// =========================================================================
+void console_flush(Console *con) {
+  if (con && con->need_flush) {
+    graphics_flush(con->fb);
+    con->need_flush = 0;
+  }
 }
 
 // =========================================================================
@@ -25,18 +47,23 @@ void console_scroll(Console *con) {
 
   unsigned int *buf = fb->back_buffer ? fb->back_buffer : fb->vram;
 
-  for (unsigned int y = 0; y < copy_height; y++) {
-    unsigned int *dst = &buf[y * ppsl];
-    unsigned int *src = &buf[(y + FONT_HEIGHT) * ppsl];
-    for (unsigned int x = 0; x < width; x++) {
-      dst[x] = src[x];
+  if (width == ppsl) {
+    // 画面全体が連続している場合は 1 回で一括シフト
+    unsigned long long total_qwords = ((unsigned long long)ppsl * copy_height) / 2;
+    fast_copy_64(buf, &buf[FONT_HEIGHT * ppsl], total_qwords);
+  } else {
+    // 行ごとに一括コピー
+    unsigned long long row_qwords = width / 2;
+    for (unsigned int y = 0; y < copy_height; y++) {
+      fast_copy_64(&buf[y * ppsl], &buf[(y + FONT_HEIGHT) * ppsl], row_qwords);
     }
   }
 
   // 最下部に空いた高さ 16px の領域を背景色で塗りつぶす
   draw_rect(fb, 0, fb->height - FONT_HEIGHT, fb->width, FONT_HEIGHT, con->bg_color);
 
-  graphics_flush(fb);
+  // 画面全体の一括転送が必要であることを記録 (遅延フラッシュ)
+  con->need_flush = 1;
 }
 
 // =========================================================================
@@ -61,7 +88,9 @@ void console_putc(Console *con, char c) {
     // カーソル位置の 1 文字分を背景色で塗りつぶして消去
     draw_rect(con->fb, con->cursor_x, con->cursor_y, FONT_WIDTH, FONT_HEIGHT, con->bg_color);
 
-    graphics_flush_rect(con->fb, con->cursor_x, con->cursor_y, FONT_WIDTH, FONT_HEIGHT);
+    if (!con->need_flush) {
+      graphics_flush_rect(con->fb, con->cursor_x, con->cursor_y, FONT_WIDTH, FONT_HEIGHT);
+    }
     return;
   }
 
@@ -76,8 +105,6 @@ void console_putc(Console *con, char c) {
     if (con->cursor_y + FONT_HEIGHT > con->fb->height) {
       console_scroll(con);
       con->cursor_y = con->fb->height - FONT_HEIGHT; // 最下行にカーソルを固定
-    } else {
-      graphics_flush(con->fb);
     }
     return;
   }
@@ -86,7 +113,9 @@ void console_putc(Console *con, char c) {
   // 3. 通常文字の描画
   // -----------------------------------------------------------------------
   draw_char(con->fb, con->cursor_x, con->cursor_y, c, con->fg_color);
-  graphics_flush_rect(con->fb, con->cursor_x, con->cursor_y, FONT_WIDTH, FONT_HEIGHT);
+  if (!con->need_flush) {
+    graphics_flush_rect(con->fb, con->cursor_x, con->cursor_y, FONT_WIDTH, FONT_HEIGHT);
+  }
   con->cursor_x += FONT_WIDTH;       // 次の文字位置へ (横8ドット進める)
 
   // 右端に達したら自動折返し
@@ -111,7 +140,7 @@ void console_puts(Console *con, const char *str) {
     str++;
   }
 
-  graphics_flush(con->fb);
+  console_flush(con);
 }
 
 // =========================================================================

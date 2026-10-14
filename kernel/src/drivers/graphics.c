@@ -1,5 +1,15 @@
 #include "drivers/graphics.h"
 
+// 8バイト (64bit)単位で一括転送する関数
+static inline void fast_copy_64(void *dst, const void *src, unsigned long long qwords) {
+  __asm__ volatile (
+      "rep movsq"
+      : "+D"(dst), "+S"(src), "+c"(qwords)
+      :
+      : "memory"
+  );
+}
+
 void draw_pixel(FrameBuffer *fb, unsigned int x, unsigned int y, unsigned int color) {
   // 画面境界外への不正メモリアクセスを防ぐ (保護ガード)
   if (x >= fb->width || y >= fb->height) {
@@ -36,11 +46,13 @@ void graphics_flush(FrameBuffer *fb) {
     return;
   }
 
-  for (unsigned int y = 0; y < fb->height; y++) {
-    unsigned int *dst = &fb->vram[y * fb->ppsl];
-    unsigned int *src = &fb->back_buffer[y * fb->ppsl];
-    for (unsigned int x = 0; x < fb->width; x++) {
-      dst[x] = src[x];
+  if (fb->width == fb->ppsl) {
+    unsigned long long total_qwords = ((unsigned long long)fb->ppsl * fb->height) / 2;
+    fast_copy_64(fb->vram, fb->back_buffer, total_qwords);
+  } else {
+    unsigned long long row_qwords = fb->width / 2;
+    for (unsigned int y = 0; y < fb->height; y++) {
+      fast_copy_64(&fb->vram[y * fb->ppsl], &fb->back_buffer[y * fb->ppsl], row_qwords);
     }
   }
 }

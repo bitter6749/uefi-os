@@ -61,7 +61,7 @@ static void shell_add_history(KernelShell *shell, const char *cmd) {
 }
 
 static void shell_execute_command(KernelShell *shell) {
-  console_puts(shell->con, "\n"); // 改行
+  console_putc(shell->con, '\n'); // 改行
 
   // 入力が空の場合はプロンプトを再表示して終了
   if (shell->line_len == 0) {
@@ -153,64 +153,65 @@ void shell_init(KernelShell *shell, Console *con) {
 // shell_update: メインループから毎フレーム呼び出す更新処理 (キー入力を監視・処理)
 // ================================================================================
 void shell_update(KernelShell *shell) {
-  char c = keyboard_getchar();
-  if (c == '\0') {
-    return; // 入力なし
-  }
+  char c;
+  while ((c = keyboard_getchar()) != '\0') {
+    if ((unsigned char)c == KEY_UP) {
+      if (shell->history_count == 0) continue;
 
-  if ((unsigned char)c == KEY_UP) {
-    if (shell->history_count == 0) return;
-
-    if (shell->history_index == -1) {
-      // 初めて履歴を参照したとき : 現在入力中の文字列を temp_buf に退避
-      k_strcpy(shell->temp_buf, shell->line_buf);
-      shell->history_index = (shell->history_head - 1 + HISTORY_MAX) % HISTORY_MAX;
-    } else {
-      int oldest_idx = (shell->history_head - shell->history_count + HISTORY_MAX) % HISTORY_MAX;
-      if (shell->history_index != oldest_idx) {
-        shell->history_index = (shell->history_index - 1 + HISTORY_MAX) % HISTORY_MAX;
+      if (shell->history_index == -1) {
+        // 初めて履歴を参照したとき : 現在入力中の文字列を temp_buf に退避
+        k_strcpy(shell->temp_buf, shell->line_buf);
+        shell->history_index = (shell->history_head - 1 + HISTORY_MAX) % HISTORY_MAX;
+      } else {
+        int oldest_idx = (shell->history_head - shell->history_count + HISTORY_MAX) % HISTORY_MAX;
+        if (shell->history_index != oldest_idx) {
+          shell->history_index = (shell->history_index - 1 + HISTORY_MAX) % HISTORY_MAX;
+        }
       }
-    }
-    shell_replace_line(shell, shell->history[shell->history_index]);
-    return;
-  }
-
-  if ((unsigned char)c == KEY_DOWN) {
-    if (shell->history_index == -1) return; // 履歴参照中でなければ無視
-
-    int latest_idx = (shell->history_head - 1 + HISTORY_MAX) % HISTORY_MAX;
-    if (shell->history_index == latest_idx) {
-      // 最新の履歴から戻る場合 : 退避しておいた入力途中文字列を復元
-      shell->history_index = -1;
-      shell_replace_line(shell, shell->temp_buf);
-    } else {
-      shell->history_index = (shell->history_index + 1 + HISTORY_MAX) % HISTORY_MAX;
       shell_replace_line(shell, shell->history[shell->history_index]);
+      continue;
     }
-    return;
-  }
 
-  // Enter キー押下時 -> コマンド実行
-  if (c == '\n') {
-    shell_execute_command(shell);
-    return;
-  }
+    if ((unsigned char)c == KEY_DOWN) {
+      if (shell->history_index == -1) continue; // 履歴参照中でなければ無視
 
-  // BackSpace 押下時 -> バッファおよび画面から削る
-  if (c == '\b') {
-    if (shell->line_len > 0) {
-      shell->line_len--;
+      int latest_idx = (shell->history_head - 1 + HISTORY_MAX) % HISTORY_MAX;
+      if (shell->history_index == latest_idx) {
+        // 最新の履歴から戻る場合 : 退避しておいた入力途中文字列を復元
+        shell->history_index = -1;
+        shell_replace_line(shell, shell->temp_buf);
+      } else {
+        shell->history_index = (shell->history_index + 1 + HISTORY_MAX) % HISTORY_MAX;
+        shell_replace_line(shell, shell->history[shell->history_index]);
+      }
+      continue;
+    }
+
+    // Enter キー押下時 -> コマンド実行
+    if (c == '\n') {
+      shell_execute_command(shell);
+      continue;
+    }
+
+    // BackSpace 押下時 -> バッファおよび画面から削る
+    if (c == '\b') {
+      if (shell->line_len > 0) {
+        shell->line_len--;
+        shell->line_buf[shell->line_len] = '\0';
+        console_putc(shell->con, '\b');
+      }
+      continue;
+    }
+
+    // 通常の文字入力 -> バッファ上限内で蓄積して描画
+    if (shell->line_len < SHELL_MAX_LINE - 1) {
+      shell->line_buf[shell->line_len++] = c;
       shell->line_buf[shell->line_len] = '\0';
-      console_putc(shell->con, '\b');
+      console_putc(shell->con, c);  // 画面に一文字描画
     }
-    return;
   }
 
-  // 通常の文字入力 -> バッファ上限内で蓄積して描画
-  if (shell->line_len < SHELL_MAX_LINE - 1) {
-    shell->line_buf[shell->line_len++] = c;
-    shell->line_buf[shell->line_len] = '\0';
-    console_putc(shell->con, c);  // 画面に一文字描画
-  }
+  // スクロール等で未反映の描画があれば一括反映
+  console_flush(shell->con);
 }
 

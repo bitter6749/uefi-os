@@ -102,6 +102,9 @@ $(TARGET_IMG): $(TARGET_EFI)
 	$(MCOPY) -i $@ $< ::/EFI/BOOT/BOOTX64.EFI
 	@echo "Disk image created at $@"
 
+# Check if KVM is available
+USE_KVM := $(shell test -w /dev/kvm && echo "-enable-kvm -cpu host" || echo "-cpu max,smap=on,smep=on")
+
 # Run under QEMU with UEFI (OVMF)
 .PHONY: run
 run: $(TARGET_IMG)
@@ -109,7 +112,13 @@ run: $(TARGET_IMG)
 		echo "Error: OVMF firmware not found. Please install ovmf or set OVMF=/path/to/OVMF.fd"; \
 		exit 1; \
 	fi
-	$(QEMU) -bios $(OVMF) -drive file=$(TARGET_IMG),format=raw -net none
+	$(QEMU) $(USE_KVM) \
+					-bios $(OVMF) \
+					-m 2048 \
+					-smp 2 \
+					-drive file=$(TARGET_IMG),format=raw \
+					-net none \
+					-d int,cpu_reset \
 
 # Flash disk image to physical USB drive
 # Usage: make flash DRIVE=/dev/sdX

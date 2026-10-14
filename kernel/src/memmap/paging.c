@@ -48,10 +48,39 @@ static PageTable *get_or_create_next_table(
 }
 
 // ====================================================================================
+// setup_pat_wc: IA32_PAT MSR (0x277) の PA2 を Write-Combining (0x01) に設定する
+// ====================================================================================
+static void setup_pat_wc(void) {
+  unsigned int msr = 0x277;
+  unsigned int low, high;
+  __asm__ volatile("rdmsr" : "=a"(low), "=d"(high) : "c"(msr));
+  unsigned long long pat = ((unsigned long long)high << 32) | low;
+
+  // PA2 (bits 16-23) を 0x01 (WC: Write-Combining) に設定
+  pat &= ~(0xFFULL << 16);
+  pat |= (0x01ULL << 16);
+
+  low = (unsigned int)pat;
+  high = (unsigned int)(pat >> 32);
+  __asm__ volatile("wrmsr" : : "c"(msr), "a"(low), "d"(high));
+}
+
+// ====================================================================================
 // setup_identity_mapping: 物理アドレスと仮想アドレスを 1 対 1 でマッピングする
 // ====================================================================================
-PageTable *setup_identity_mapping(BitmapFrameAllocator *allocator, unsigned long long max_phys_addr) {
-  // 1. ルートとなる PML4 テーブルの作成
+PageTable *setup_identity_mapping(BitmapFrameAllocator *allocator, unsigned long long max_phys_addr, FrameBuffer *fb) {
+  // 1. PAT の PA2 を Write-Combining に初期化
+  setup_pat_wc();
+
+  // VRAM のアドレス範囲 (バイト単位) を取得
+  unsigned long long vram_start = 0;
+  unsigned long long vram_end   = 0;
+  if (fb && fb->vram) {
+    vram_start = (unsigned long long)fb->vram;
+    vram_end   = vram_start + (unsigned long long)fb->ppsl * fb->height * sizeof(unsigned int);
+  }
+
+  // ルートとなる PML4 テーブルの作成
   PageTable *pml4 = create_empty_table(allocator);
   if (!pml4) {
     return 0;
@@ -86,7 +115,13 @@ PageTable *setup_identity_mapping(BitmapFrameAllocator *allocator, unsigned long
     if (!pt) return 0;
 
     // --- Level 1: PT -> 最終物理アドレス ---
-    pt->entries[pt_idx] = phys_addr | flags;
+    unsigned long long page_flags = flags;
+    // VRAM 領域であれば PCD(bit 4) を付与して PA2 (WC) に設定
+    if (phys_addr >= vram_start && phys_addr < vram_end) {
+      page_flags |= PAGE_ENTRY_PCD;
+    }
+
+    pt->entries[pt_idx] = phys_addr | page_flags;
   }
 
   return pml4;

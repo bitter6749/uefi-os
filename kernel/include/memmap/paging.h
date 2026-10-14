@@ -2,6 +2,7 @@
 #define PAGING_H
 
 #include "memory.h"
+#include "drivers/graphics.h"
 
 // ====================================================================================
 // ページテーブルの概要と 48-bit 仮想アドレス空間の構造
@@ -43,6 +44,7 @@
 #define PAGE_ENTRY_PRESENT      (1ULL << 0) // P    : ページが存在するか (1=有効)
 #define PAGE_ENTRY_WRITABLE     (1ULL << 1) // R/W  : 読み書き許可 (1=書き込み許可)
 #define PAGE_ENTRY_USER         (1ULL << 2) // U/S  : ユーザーモードアクセス可 (1=User)
+#define PAGE_ENTRY_PCD          (1ULL << 4) // PCD  : キャッシュ属性ビット (PAT と併せて WC を指定)
 
 #define PAGE_ENTRIES_PER_TABLE  512         // 1 つのテーブル内のエントリ数 (4KB / 8byte)
 
@@ -70,8 +72,9 @@ typedef struct {
 // ====================================================================================
 // - 引数1 (allocator):       ページテーブルメモリ確保用のフレームアロケータへのポインタ
 // - 引数2 (max_phys_addr):   マッピング対象の最大物理アドレス (バイト単位)
+// - 引数3 (fb):              フレームバッファ情報 (VRAM を Write-Combining に設定するため)
 // - 戻り値:                  作成された最頂点 PML4 テーブルの物理アドレス (0は失敗)
-PageTable *setup_identity_mapping(BitmapFrameAllocator *allocator, unsigned long long max_phys_addr);
+PageTable *setup_identity_mapping(BitmapFrameAllocator *allocator, unsigned long long max_phys_addr, FrameBuffer *fb);
 
 // ===============================================================================================
 // load_pml4: 作成した PML4 テーブルのアドレスを CR3 レジスタに登録してページテーブルを有効化する

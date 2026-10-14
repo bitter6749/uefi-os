@@ -139,7 +139,7 @@ void kernel_main(BootInfo *boot_info) {
   console_put_hex(&con, max_phys_addr, 16);
   console_puts(&con, "\nMapping Page Tables...\n");
 
-  PageTable *pml4 = setup_identity_mapping(&allocator, max_phys_addr);
+  PageTable *pml4 = setup_identity_mapping(&allocator, max_phys_addr, &fb);
 
   if (pml4) {
     console_puts(&con, "PML4 Table Created at: ");
@@ -171,6 +171,9 @@ void kernel_main(BootInfo *boot_info) {
   // Local APIC タイマーの初期化と開始
   lapic_timer_init();
   console_puts(&con, "Local APIC Timer Started!\n");
+
+  // CPU の割り込み受信を許可 (sti 命令)
+  __asm__ volatile("sti");
 
   // 動作確認用ループ
   // unsigned long long last_tick = 0;

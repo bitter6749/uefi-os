@@ -10,6 +10,7 @@ typedef struct {
   unsigned int cursor_y;  // 現在の文字カーソルのY座標 (px)
   unsigned int fg_color;  // 文字色 (32-bit RGB: 0x00RRGGBB)
   unsigned int bg_color;  // 背景色 (32-bit RGB: 0x00RRGGBB)
+  int          need_flush; // スクロール等による全画面flushが必要かどうかのフラグ
 } Console;
 
 // ============================================================================
@@ -20,6 +21,12 @@ typedef struct {
 // - 引数3 (fg_color):    文字色 (32-bit RGB: 0x00RRGGBB) 
 // - 引数4 (bg_color):    背景色 (32-bit RGB: 0x00RRGGBB)
 void console_init(Console *con, FrameBuffer *fb, unsigned int fg_color, unsigned int bg_color);
+
+// ============================================================================
+// console_flush: 保留中の画面全体フラッシュ (スクロール等) を実行する
+// ============================================================================
+// - 引数1 (con):   出力先コンソール構造体へのポインタ
+void console_flush(Console *con);
 
 // ============================================================================
 // console_putc: コンソールに 1 文字を出力する 
