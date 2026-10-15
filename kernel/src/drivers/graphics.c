@@ -39,6 +39,7 @@ void draw_rect(FrameBuffer *fb, unsigned int x, unsigned int y, unsigned int w, 
 
 void clear_screen(FrameBuffer *fb, unsigned int color) {
   draw_rect(fb, 0, 0, fb->width, fb->height, color);
+  graphics_flush(fb);
 }
 
 void graphics_flush(FrameBuffer *fb) {

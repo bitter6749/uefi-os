@@ -113,6 +113,7 @@ run: $(TARGET_IMG)
 		exit 1; \
 	fi
 	$(QEMU) $(USE_KVM) \
+					-machine q35 \
 					-bios $(OVMF) \
 					-m 2048 \
 					-smp 2 \
